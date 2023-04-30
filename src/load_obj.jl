@@ -2,7 +2,7 @@
 
 function load_obj(fname)
     verts, normals, verts_uvs, faces_verts_idx, faces_normals_idx, faces_materials_idx, material_names, mtl_path = parse_obj(fname)
-    Mesh(permutedims(hcat(verts...))', permutedims(hcat(faces_verts_idx...)), permutedims(hcat(normals...)))
+    Mesh(permutedims(hcat(verts...))', permutedims(hcat(faces_verts_idx...))', permutedims(hcat(normals...))')
 end
 
 function parse_obj(fname; load_textures=false)

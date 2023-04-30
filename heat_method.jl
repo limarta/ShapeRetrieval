@@ -10,8 +10,14 @@ using Meshes
 # ╔═╡ 6dce8e59-499c-4afd-a07c-ae53f0418cb1
 using WGLMakie
 
-# ╔═╡ 07fb852f-181d-44d6-9b20-3968bcac9d9d
+# ╔═╡ bb06aef3-63f8-412c-8706-11a5e42af0ca
 using PlotlyJS
+
+# ╔═╡ b2504ee4-fcfd-47ff-892b-d73ba20428ea
+using Arpack
+
+# ╔═╡ 03057105-fa63-4143-8316-09cbb290e790
+using LinearAlgebra
 
 # ╔═╡ d095560b-6169-4d1c-b600-bd6c437bbc73
 WGLMakie.activate!()
@@ -38,22 +44,34 @@ SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
 begin
-	bunny = SR.load_obj("../meshes/bunny.obj")
-	fig = Figure(resolution = (1000, 1000))
-	ax1 = Axis3(fig[1,1])
-	# colors = repeat([:red], 2503)
-	s = mesh!(ax1, bunny.V, bunny.F)
-	fig
+	# bunny = SR.load_obj("../meshes/bunny.obj")
+	# L = SR.cot_laplacian(bunny)
+	# λ, eigens = eigs(L, nev=200, sigma=1e-8)
+	# display(Matrix(L[1:5,1:5]))
+	# fig = Figure(resolution = (1000, 1000))
+	# ax1 = Axis3(fig[1,1])
+	# # colors = repeat([:red], 2503)
+	# s = mesh!(ax1, bunny.V, bunny.F)
+	# fig
+	V,F = SR.readoff("../meshes/moomoo.off")
+	moomoo = SR.Mesh(V', F', zeros(0,0))
+	L = SR.cot_laplacian(moomoo)
 end
+
+# ╔═╡ 069bceed-147b-4157-a81f-5c3a145fa94c
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Meshes = "eacbb407-ea5a-433e-ab97-5258b1ca43fa"
 PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
 [compat]
+Arpack = "~0.5.4"
 Meshes = "~0.28.1"
 PlotlyJS = "~0.18.10"
 WGLMakie = "~0.8.8"
@@ -65,7 +83,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0-rc2"
 manifest_format = "2.0"
-project_hash = "d33989052b2fba9a1cdf5bda2eaadcb4121cf479"
+project_hash = "d913bf7e94cdc23166261de45d98c5513cd11e78"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -101,6 +119,18 @@ version = "0.4.1"
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 version = "1.1.1"
+
+[[deps.Arpack]]
+deps = ["Arpack_jll", "Libdl", "LinearAlgebra", "Logging"]
+git-tree-sha1 = "9b9b347613394885fd1c8c7729bfc60528faa436"
+uuid = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
+version = "0.5.4"
+
+[[deps.Arpack_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "OpenBLAS_jll", "Pkg"]
+git-tree-sha1 = "5ba6c757e8feccf03a1554dfaf3e26b3cfc7fd5e"
+uuid = "68821587-b530-5797-8361-c406ea357684"
+version = "3.5.1+1"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -1606,11 +1636,14 @@ version = "3.5.0+0"
 # ╔═╡ Cell order:
 # ╠═3f078b12-6dce-4201-8c94-71df455a53ee
 # ╠═6dce8e59-499c-4afd-a07c-ae53f0418cb1
+# ╠═bb06aef3-63f8-412c-8706-11a5e42af0ca
+# ╠═b2504ee4-fcfd-47ff-892b-d73ba20428ea
+# ╠═03057105-fa63-4143-8316-09cbb290e790
 # ╠═d095560b-6169-4d1c-b600-bd6c437bbc73
 # ╠═7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
 # ╟─df42d23d-4bd9-48bc-a744-585ebc45b2f4
 # ╠═61dca968-baa2-4b37-aa7e-b251014121bf
 # ╠═530964ef-78f7-4722-955b-377ae0a2a4b8
-# ╠═07fb852f-181d-44d6-9b20-3968bcac9d9d
+# ╠═069bceed-147b-4157-a81f-5c3a145fa94c
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

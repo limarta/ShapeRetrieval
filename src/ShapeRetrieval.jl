@@ -4,15 +4,12 @@ using LinearAlgebra
 using SparseArrays
 
 # TODO: Standardize all operations to do column-major manipulations
-mutable struct Mesh
-    V::Matrix{Float64}
-    F::Matrix{Int}
-    normals::Matrix{Float64}
-end
 
+include("mesh.jl")
 include("geom.jl")
 include("heat.jl")
 include("load_obj.jl")
+include("utils.jl")
 include("viz.jl")
 
 
