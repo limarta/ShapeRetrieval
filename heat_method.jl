@@ -4,9 +4,6 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 3f078b12-6dce-4201-8c94-71df455a53ee
-using Meshes
-
 # ╔═╡ 6dce8e59-499c-4afd-a07c-ae53f0418cb1
 using WGLMakie
 
@@ -44,26 +41,16 @@ SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
 begin
-	@time bunny = SR.load_obj("./meshes/cat.obj")
+	bunny = SR.load_obj("./meshes/gourd.obj")
 	bunny = SR.normalize_mesh(bunny)
 	A = SR.vertex_area(bunny)
-	println("Area: ", sum(A))
+	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
 	heat_signal = zeros(bunny.nv)
-	heat_signal[[35000]] .= 10.0
+	heat_signal[[200]] .= 10.0
 	# @time bunny_heat = SR.heat_diffusion(bunny, heat_signal, t=0.05)
 	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=10)
-	fig = Figure(resolution = (1000, 1000))
-	scene = Scene(fig.scene)
-	# Makie.rotate!(scene, Makie.Vec3f(0,0,1), π/4)
-	ax1 = Axis3(fig[1,1], aspect=:data, elevation= 0.0, azimuth=-π/2)
-	# ϕ = -π/4
-	# v = Makie.Vec3f(300, 300, 0)
-	# for p in scene.plots
-	#     Makie.rotate!(p, Makie.Vec3f(0,0,1)3, ϕ)
-	#     translate!(p, v)
-	# end0
-	colors = bunny_heat
-	s = mesh!(ax1, bunny.V, bunny.F', color=colors)
+
+	fig = SR.meshviz(bunny, color=bunny_heat)
 	fig
 end
 
@@ -75,13 +62,11 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-Meshes = "eacbb407-ea5a-433e-ab97-5258b1ca43fa"
 PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
 [compat]
 Arpack = "~0.5.4"
-Meshes = "~0.28.1"
 PlotlyJS = "~0.18.10"
 WGLMakie = "~0.8.8"
 """
@@ -92,7 +77,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0-rc2"
 manifest_format = "2.0"
-project_hash = "d913bf7e94cdc23166261de45d98c5513cd11e78"
+project_hash = "6ce653d44bdf3ecc5bae5b14c05363327b758244"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -171,11 +156,6 @@ version = "0.4.6"
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
-[[deps.Bessels]]
-git-tree-sha1 = "4435559dc39793d53a9e3d278e185e920b4619ef"
-uuid = "0e736298-9ec6-45e8-9647-e4fc86a2fe38"
-version = "0.2.8"
-
 [[deps.BitFlags]]
 git-tree-sha1 = "43b1a4a8f797c1cddadf60499a8a077d4af2cd2d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
@@ -218,12 +198,6 @@ deps = ["Compat", "LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "c6d890a52d2c4d55d326439580c3b8d0875a77d9"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 version = "1.15.7"
-
-[[deps.CircularArrays]]
-deps = ["OffsetArrays"]
-git-tree-sha1 = "3587fdbecba8c44f7e7285a1957182711b95f580"
-uuid = "7a955b69-7140-5f4e-a0ed-f168c5e2e749"
-version = "1.3.1"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -298,11 +272,6 @@ git-tree-sha1 = "d05d9e7b7aedff4e5b51a029dced05cfb6125781"
 uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
 version = "0.6.2"
 
-[[deps.Crayons]]
-git-tree-sha1 = "249fe38abf76d48563e2f4556bebd215aa317e15"
-uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
-version = "4.1.1"
-
 [[deps.DataAPI]]
 git-tree-sha1 = "e8119c1a33d267e16108be441a287a6981ba1630"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
@@ -334,12 +303,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "64cb698de672b627f887ced4b2a722d217e73c10"
 uuid = "04572ae6-984a-583e-9378-9577a1c2574d"
 version = "1.28.1+0"
-
-[[deps.Distances]]
-deps = ["LinearAlgebra", "SparseArrays", "Statistics", "StatsAPI"]
-git-tree-sha1 = "49eba9ad9f7ead780bfb7ee319f962c811c6d3b2"
-uuid = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
-version = "0.10.8"
 
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -878,12 +841,6 @@ deps = ["Artifacts", "Libdl"]
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
 version = "2.28.2+0"
 
-[[deps.Meshes]]
-deps = ["Bessels", "CircularArrays", "Distances", "IterTools", "LinearAlgebra", "NearestNeighbors", "Random", "ReferenceFrameRotations", "SparseArrays", "StaticArrays", "StatsBase", "Tables", "TransformsBase"]
-git-tree-sha1 = "5cd413ae2079f4a98aa8b506add26a1656cb0de5"
-uuid = "eacbb407-ea5a-433e-ab97-5258b1ca43fa"
-version = "0.28.1"
-
 [[deps.MiniQhull]]
 deps = ["QhullMiniWrapper_jll"]
 git-tree-sha1 = "9dc837d180ee49eeb7c8b77bb1c860452634b0d1"
@@ -932,12 +889,6 @@ deps = ["OpenLibm_jll"]
 git-tree-sha1 = "0877504529a3e5c3343c6f8b4c0381e57e4387e4"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
 version = "1.0.2"
-
-[[deps.NearestNeighbors]]
-deps = ["Distances", "StaticArrays"]
-git-tree-sha1 = "2c3726ceb3388917602169bed973dbc97f1b51a8"
-uuid = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
-version = "0.4.13"
 
 [[deps.Netpbm]]
 deps = ["FileIO", "ImageCore", "ImageMetadata"]
@@ -1184,12 +1135,6 @@ git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
 uuid = "189a3867-3050-52da-a836-e630ba90ab69"
 version = "1.2.2"
 
-[[deps.ReferenceFrameRotations]]
-deps = ["Crayons", "LinearAlgebra", "Printf", "Random", "StaticArrays"]
-git-tree-sha1 = "ec9bde2e30bc221e05e20fcec9a36a9c315e04a6"
-uuid = "74f56ac7-18b3-5285-802d-d4bd4f104033"
-version = "3.0.0"
-
 [[deps.RelocatableFolders]]
 deps = ["SHA", "Scratch"]
 git-tree-sha1 = "90bc7a7c96410424509e4263e277e43250c05691"
@@ -1432,12 +1377,6 @@ git-tree-sha1 = "0b829474fed270a4b0ab07117dce9b9a2fa7581a"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.9.12"
 
-[[deps.TransformsBase]]
-deps = ["AbstractTrees"]
-git-tree-sha1 = "2412fb54902b0063c69c2bcfbec6b571120cc856"
-uuid = "28dd2a49-a57a-4bfb-84ca-1a49db9b96b8"
-version = "0.1.2"
-
 [[deps.TriplotBase]]
 git-tree-sha1 = "4d4ed7f294cda19382ff7de4c137d24d16adc89b"
 uuid = "981d1d27-644d-49a2-9326-4793e63143c3"
@@ -1643,7 +1582,6 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═3f078b12-6dce-4201-8c94-71df455a53ee
 # ╠═6dce8e59-499c-4afd-a07c-ae53f0418cb1
 # ╠═bb06aef3-63f8-412c-8706-11a5e42af0ca
 # ╠═b2504ee4-fcfd-47ff-892b-d73ba20428ea
