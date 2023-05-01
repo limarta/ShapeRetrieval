@@ -1,3 +1,5 @@
+
+export readoff
 """
     readoff(filename)
 
@@ -24,5 +26,3 @@ function readoff(filename::String)
         X, T
     end
 end
-
-export readoff

@@ -1,5 +1,7 @@
 # Julia version of https://pytorch3d.readthedocs.io/en/v0.6.0/_modules/pytorch3d/io/obj_io.html#load_obj
 
+export load_obj
+
 function load_obj(fname)
     verts, normals, verts_uvs, faces_verts_idx, faces_normals_idx, faces_materials_idx, material_names, mtl_path = parse_obj(fname)
     Mesh(permutedims(hcat(verts...))', permutedims(hcat(faces_verts_idx...))', permutedims(hcat(normals...))')
@@ -32,7 +34,6 @@ function parse_obj(fname; load_textures=false)
                 push!(verts, vert)
             elseif startswith(line, "vt ") # Line is a texture
                 tx = [parse(Float64, x) for x in tokens[2:4]]
-                throw("texture not implemented")
                 push!(verts_uvs, tx)
             elseif startswith(line, "vn ") # Line is a normal
                 n = [parse(Float64, x) for x in tokens[2:4]]

@@ -44,18 +44,27 @@ SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
 begin
-	# bunny = SR.load_obj("../meshes/bunny.obj")
-	# L = SR.cot_laplacian(bunny)
-	# λ, eigens = eigs(L, nev=200, sigma=1e-8)
-	# display(Matrix(L[1:5,1:5]))
-	# fig = Figure(resolution = (1000, 1000))
-	# ax1 = Axis3(fig[1,1])
-	# # colors = repeat([:red], 2503)
-	# s = mesh!(ax1, bunny.V, bunny.F)
-	# fig
-	V,F = SR.readoff("../meshes/moomoo.off")
-	moomoo = SR.Mesh(V', F', zeros(0,0))
-	L = SR.cot_laplacian(moomoo)
+	@time bunny = SR.load_obj("./meshes/cat.obj")
+	bunny = SR.normalize_mesh(bunny)
+	A = SR.vertex_area(bunny)
+	println("Area: ", sum(A))
+	heat_signal = zeros(bunny.nv)
+	heat_signal[[35000]] .= 10.0
+	# @time bunny_heat = SR.heat_diffusion(bunny, heat_signal, t=0.05)
+	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=10)
+	fig = Figure(resolution = (1000, 1000))
+	scene = Scene(fig.scene)
+	# Makie.rotate!(scene, Makie.Vec3f(0,0,1), π/4)
+	ax1 = Axis3(fig[1,1], aspect=:data, elevation= 0.0, azimuth=-π/2)
+	# ϕ = -π/4
+	# v = Makie.Vec3f(300, 300, 0)
+	# for p in scene.plots
+	#     Makie.rotate!(p, Makie.Vec3f(0,0,1)3, ϕ)
+	#     translate!(p, v)
+	# end0
+	colors = bunny_heat
+	s = mesh!(ax1, bunny.V, bunny.F', color=colors)
+	fig
 end
 
 # ╔═╡ 069bceed-147b-4157-a81f-5c3a145fa94c
