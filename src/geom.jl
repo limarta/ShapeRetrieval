@@ -48,7 +48,7 @@ end
 function normalize_mesh(V,F)
     Z = maximum(vec(norm(V,dims=1)))
     V ./= Z
-    Mesh(V, F, mesh.normals) # ???
+    Mesh(V, F) # ???
 end
 
 function vertex_area(V,F)
@@ -64,9 +64,10 @@ function vertex_area(V,F)
     return B
 end
 
-function vertex_normals(V,F)
+function vertex_normals(V,F, face_area)
     N = normals(V,F)
-    (FtoV(mesh) * N')'
+    ftov = FtoV(V,F, face_area)
+    (ftov * N')'
 end
 
 
@@ -129,4 +130,4 @@ FtoV(mesh::Mesh) = FtoV(mesh.V, mesh.F, face_area(mesh))
 normals(mesh::Mesh) = normals(mesh.V, mesh.F)
 normalize_mesh(mesh::Mesh) = normalize_mesh(mesh.V, mesh.F)
 vertex_area(mesh::Mesh) = vertex_area(mesh.V, mesh.F)
-vertex_normals(mesh::Mesh) = vertex_normals(mesh.V,mesh.F)
+vertex_normals(mesh::Mesh) = vertex_normals(mesh.V,mesh.F, face_area(mesh))

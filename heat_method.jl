@@ -51,18 +51,18 @@ begin
 	bunny = SR.normalize_mesh(bunny)
 	A = SR.vertex_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
-	# heat_signal = zeros(bunny.nv)
-	# heat_signal[[1]] .= 1.0
-	# # @time bunny_heat = SR.heat_diffusion(bunny, heat_signal, t=0.05)
-	# @time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=100)
+	heat_signal = zeros(bunny.nv)
+	heat_signal[[1]] .= 1.0
+	# @time bunny_heat = SR.heat_diffusion(bunny, heat_signal, t=0.05)
+	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=100)
 
-	# # ∇ = SR.face_grad(bunny)
-	# # field = ∇ * bunny_heat
-	# vertex_normals = SR.vertex_normals(bunny)
-	# println(size(vertex_normals))
+	# ∇ = SR.face_grad(bunny)
+	# field = ∇ * bunny_heat
+	vertex_normals = SR.vertex_normals(bunny)
+	println(size(vertex_normals))
 	# field = reshape(∇ * bunny_heat, 3, bunny.nf)
-	# fig = SR.meshviz(bunny, color=bunny_heat, viz_field=true, field=vertex_normals, field_type=:vertex )
-	# fig
+	fig = SR.meshviz(bunny, color=bunny_heat, viz_field=true, field=vertex_normals, field_type=:vertex )
+	fig
 end
 
 # ╔═╡ 069bceed-147b-4157-a81f-5c3a145fa94c

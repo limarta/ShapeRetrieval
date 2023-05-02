@@ -13,7 +13,7 @@ using WGLMakie
 function meshviz(mesh::Mesh; args...)
     V = mesh.V
     F = mesh.F
-    fig = Figure(resolution = (2000,2000))
+    fig = Figure(resolution = (1000,1000))
     ax = Axis3(fig[1,1], aspect=:data, elevation = 0.0, azimuth = -π/2)
     mesh!(ax, V', F'; args...)
     if get(args,:viz_field, false)

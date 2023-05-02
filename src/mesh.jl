@@ -11,7 +11,7 @@ end
 function Mesh(V,F,N)
     A = face_area(V,F)
     ftov = FtoV(V,F,A)
-    vert_N, vertex_normals(V,F)
+    vert_N = vertex_normals(V,F,A)
     Mesh(V,F, N, vert_N, ftov, size(V)[2], size(F)[2])
 end
 Mesh(V, F) = Mesh(V, F, normals(V,F))
