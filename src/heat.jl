@@ -1,7 +1,7 @@
-export heat_integrator, heat_diffusion
+# export heat_integrator, heat_diffusion
 function heat_integrator(mesh, L, A, signal; dt=0.001, steps=100)
     M = spdiagm(A)
-    D = (M-dt * L)
+    D = lu(M-dt*L)
     heat = signal
     for t in 1:steps
         heat = D \ (heat .* A)

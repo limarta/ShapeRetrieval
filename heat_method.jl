@@ -16,6 +16,12 @@ using Arpack
 # ╔═╡ 03057105-fa63-4143-8316-09cbb290e790
 using LinearAlgebra
 
+# ╔═╡ 47580825-37ab-4b34-80c4-5e7425eeeae6
+using SparseArrays
+
+# ╔═╡ e41efaf3-b193-451f-893c-7d096c28a66a
+Threads.nthreads()
+
 # ╔═╡ d095560b-6169-4d1c-b600-bd6c437bbc73
 WGLMakie.activate!()
 
@@ -41,25 +47,31 @@ SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
 begin
-	bunny = SR.load_obj("./meshes/icosahedron.obj")
+	bunny = SR.load_obj("./meshes/dragon.obj")
 	bunny = SR.normalize_mesh(bunny)
 	A = SR.vertex_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
-	heat_signal = zeros(bunny.nv)
-	heat_signal[[1]] .= 10.0
-	# @time bunny_heat = SR.heat_diffusion(bunny, heat_signal, t=0.05)
-	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=5)
+	# heat_signal = zeros(bunny.nv)
+	# heat_signal[[1]] .= 1.0
+	# # @time bunny_heat = SR.heat_diffusion(bunny, heat_signal, t=0.05)
+	# @time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=100)
 
-	# ∇ = SR.face_grad(bunny)
-	# field = ∇ * bunny_heat
-	vertex_normals = SR.vertex_normals(bunny)
-	println(size(vertex_normals))
+	# # ∇ = SR.face_grad(bunny)
+	# # field = ∇ * bunny_heat
+	# vertex_normals = SR.vertex_normals(bunny)
+	# println(size(vertex_normals))
 	# field = reshape(∇ * bunny_heat, 3, bunny.nf)
-	fig = SR.meshviz(bunny, color=bunny_heat, viz_field=true, field=vertex_normals, field_type=:vertex )
-	fig
+	# fig = SR.meshviz(bunny, color=bunny_heat, viz_field=true, field=vertex_normals, field_type=:vertex )
+	# fig
 end
 
 # ╔═╡ 069bceed-147b-4157-a81f-5c3a145fa94c
+begin
+	bunny
+	SR.tangent_basis(bunny)
+end
+
+# ╔═╡ 60daee2a-58ee-4e82-b231-c1efcf85a605
 
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -68,6 +80,7 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
 [compat]
@@ -80,9 +93,9 @@ WGLMakie = "~0.8.8"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.0-rc2"
+julia_version = "1.9.0-rc3"
 manifest_format = "2.0"
-project_hash = "6ce653d44bdf3ecc5bae5b14c05363327b758244"
+project_hash = "b9c16cdcca998f7c8f0e83d53705ac4562f70892"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1537,7 +1550,7 @@ version = "0.15.1+0"
 [[deps.libblastrampoline_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-version = "5.4.0+0"
+version = "5.7.0+0"
 
 [[deps.libfdk_aac_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1587,15 +1600,18 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
+# ╠═e41efaf3-b193-451f-893c-7d096c28a66a
 # ╠═6dce8e59-499c-4afd-a07c-ae53f0418cb1
 # ╠═bb06aef3-63f8-412c-8706-11a5e42af0ca
 # ╠═b2504ee4-fcfd-47ff-892b-d73ba20428ea
 # ╠═03057105-fa63-4143-8316-09cbb290e790
+# ╠═47580825-37ab-4b34-80c4-5e7425eeeae6
 # ╠═d095560b-6169-4d1c-b600-bd6c437bbc73
 # ╠═7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
 # ╟─df42d23d-4bd9-48bc-a744-585ebc45b2f4
 # ╠═61dca968-baa2-4b37-aa7e-b251014121bf
 # ╠═530964ef-78f7-4722-955b-377ae0a2a4b8
 # ╠═069bceed-147b-4157-a81f-5c3a145fa94c
+# ╠═60daee2a-58ee-4e82-b231-c1efcf85a605
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

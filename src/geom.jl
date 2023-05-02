@@ -1,57 +1,13 @@
-export face_centroids, normalize_mesh, vertex_area, face_area, area_normals, normals, cot_laplacian, vertex_grad, vertex_normals
-function normalize_mesh(mesh::Mesh)
-    V = mesh.V
-    Z = maximum(vec(norm(V,dims=1)))
-    V ./= Z
-    Mesh(V, mesh.F, mesh.normals)
-end
-
-function face_centroids(mesh::Mesh)
-    T = mesh.V[:,mesh.F]
-    dropdims(sum(T, dims=2) ./ 3; dims=2)
-end
-
 function area_normals(V,F)
     T = V[:,F]
     u = T[:,2,:] - T[:,1,:]
     v = T[:,3,:] - T[:,1,:]
     A = 0.5 * multicross(u,v) # Correct direction??
 end
-area_normals(mesh::Mesh) = area_normals(mesh.V, mesh.F)
-function normals(V,F)
-    A = area_normals(V,F)
-    faceNormals = A ./ (norm(A, dims=1))
-end
-normals(mesh::Mesh) = normals(mesh.V, mesh.F)
 
-function vertex_normals(mesh::Mesh)
-    N = normals(mesh)
-    (FtoV(mesh) * N')'
-end
-
-face_area(mesh::Mesh) = vec(norm(area_normals(mesh); dims=1))
-
-function vertex_area(mesh::Mesh)
-    V = mesh.V
-    F = mesh.F
-    B = zeros(mesh.nv)
-    for f in eachcol(F)
-        T = V[:,f]
-        x = T[:,1] - T[:,2]
-        y = T[:,3] - T[:,2]
-        A = 0.5*(sum(cross(x,y).^2)^0.5)
-        B[f] .+= A
-    end
-    B ./= 3
-    return B
-end
-
-function cot_laplacian(mesh::Mesh)
-    V = mesh.V
-    F = mesh.F
-    nv = mesh.nv
-    nf = mesh.nf
-    L = spzeros(nv,nv)
+function cot_laplacian(V,F)
+    nv = size(V)[2]
+    nf = size(F)[2]
     #For all 3 shifts of the roles of triangle vertices
     #to compute different cotangent weights
     cots = zeros(nf, 3)
@@ -72,15 +28,49 @@ function cot_laplacian(mesh::Mesh)
     return -.5 * L
 end
 
-function FtoV(mesh::Mesh)
-    A = face_area(mesh)
-    F = mesh.F
-    G = sparse(vec(F), vec(repeat(1:mesh.nf, 1, 3)'), vec(repeat(A, 1, 3)'), mesh.nv, mesh.nf)
+face_area(V,F) = vec(norm(area_normals(V,F); dims=1))
+
+face_centroids(V,F) = dropdims(sum(V[:,F], dims=2) ./ 3; dims=2)
+
+function FtoV(V,F, face_area)
+    A = face_area
+    nf = size(F)[2]
+    nv = size(V)[2]
+    G = sparse(vec(F), vec(repeat(1:nf, 1, 3)'), vec(repeat(A, 1, 3)'), nv, nf)
     G = (G' ./ A)'
 end
 
-function VtoF(mesh::Mesh) end
-# mesh.VtoF = sparse(vec(repeat(1:mesh.nf, 1, 3)), vec(T), fill(1/3, length(T)), mesh.nf, mesh.nv)
+function normals(V,F)
+    A = area_normals(V,F)
+    faceNormals = A ./ (norm(A, dims=1))
+end
+
+function normalize_mesh(V,F)
+    Z = maximum(vec(norm(V,dims=1)))
+    V ./= Z
+    Mesh(V, F, mesh.normals) # ???
+end
+
+function vertex_area(V,F)
+    B = zeros(size(V)[2])
+    for f in eachcol(F)
+        T = V[:,f]
+        x = T[:,1] - T[:,2]
+        y = T[:,3] - T[:,2]
+        A = 0.5*(sum(cross(x,y).^2)^0.5)
+        B[f] .+= A
+    end
+    B ./= 3
+    return B
+end
+
+function vertex_normals(V,F)
+    N = normals(V,F)
+    (FtoV(mesh) * N')'
+end
+
+
+
 function face_grad(mesh::Mesh)
     cot(v1, v2) = dot(v1, v2) / norm(cross(v1, v2))
     V = mesh.V
@@ -99,21 +89,44 @@ function face_grad(mesh::Mesh)
     return ∇
 end
 
-# TODO: There is a higher quality vertex grad operator found in the github repo.
 function vertex_grad(mesh::Mesh)
-    # Compute 1-ring
-    # Compute in-going edges
-    V = mesh.V
-    F = mesh.F
-    A = vertex_area(mesh)
-    I = []
-    J = []
-    vals = []
-    for f in eachcol(F)
-
-    end
-    ∇ = sparse(I,J, vals, nv, nv)
+    
 end
-# function compute_operators(mesh::Mesh)
-#     # https://github.com/nmwsharp/diffusion-net/blob/55931bcbec8b27810f2401dd6553a975e2c8cb7e/src/diffusion_net/geometry.py#L276
-# end
+
+function projected_edges(mesh::Mesh)
+    frame = tangent_basis(mesh) 
+    println(size(frame))
+end
+
+function tangent_basis(mesh::Mesh)
+    # frame 2×2×|V|
+    N = vertex_normals(mesh)
+    e_1 = [1.0, 0, 0]
+    e_2 = [0, 1.0, 0]
+    t_1 = project_to_plane(N, e_1)
+    println(size(t_1))
+    t_2 = project_to_plane(N, e_2)
+    frame = zeros(6,mesh.nv)
+    frame[1:3,:] = t_1
+    frame[4:6,:] = t_2
+    frame
+end
+
+function project_to_plane(normal::AbstractMatrix, u::AbstractVector)
+    # Project u onto the tangent plane defined by vertex normals
+    u .- vdot(normal, u;dims=1) ./ sum(normal.^2; dims=1) .* normal
+end
+
+######################
+# Convenience Methods
+######################
+
+area_normals(mesh::Mesh) = area_normals(mesh.V, mesh.F)
+cot_laplacian(mesh::Mesh) = cot_laplacian(mesh.V, mesh.F)
+face_area(mesh::Mesh) = face_area(mesh.V, mesh.F)
+face_centroids(mesh::Mesh) = face_centroids(mesh.V, mesh.F)
+FtoV(mesh::Mesh) = FtoV(mesh.V, mesh.F, face_area(mesh))
+normals(mesh::Mesh) = normals(mesh.V, mesh.F)
+normalize_mesh(mesh::Mesh) = normalize_mesh(mesh.V, mesh.F)
+vertex_area(mesh::Mesh) = vertex_area(mesh.V, mesh.F)
+vertex_normals(mesh::Mesh) = vertex_normals(mesh.V,mesh.F)

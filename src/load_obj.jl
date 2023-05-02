@@ -1,6 +1,6 @@
 # Julia version of https://pytorch3d.readthedocs.io/en/v0.6.0/_modules/pytorch3d/io/obj_io.html#load_obj
 
-export load_obj
+# export load_obj
 
 function load_obj(fname)
     verts, normals, verts_uvs, faces_verts_idx, faces_normals_idx, faces_materials_idx, material_names, mtl_path = parse_obj(fname)

@@ -1,5 +1,5 @@
 
-export readoff
+# export readoff
 """
     readoff(filename)
 

@@ -1,5 +1,5 @@
 using WGLMakie
-export meshviz
+# export meshviz
 
 # TODO: Fix axis orientation
 # scene = Scene(fig.scene)
