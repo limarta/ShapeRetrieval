@@ -41,16 +41,21 @@ SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
 begin
-	bunny = SR.load_obj("./meshes/gourd.obj")
+	bunny = SR.load_obj("./meshes/icosahedron.obj")
 	bunny = SR.normalize_mesh(bunny)
 	A = SR.vertex_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
 	heat_signal = zeros(bunny.nv)
-	heat_signal[[200]] .= 10.0
+	heat_signal[[1]] .= 10.0
 	# @time bunny_heat = SR.heat_diffusion(bunny, heat_signal, t=0.05)
-	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=10)
+	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=5)
 
-	fig = SR.meshviz(bunny, color=bunny_heat)
+	# ∇ = SR.face_grad(bunny)
+	# field = ∇ * bunny_heat
+	vertex_normals = SR.vertex_normals(bunny)
+	println(size(vertex_normals))
+	# field = reshape(∇ * bunny_heat, 3, bunny.nf)
+	fig = SR.meshviz(bunny, color=bunny_heat, viz_field=true, field=vertex_normals, field_type=:vertex )
 	fig
 end
 

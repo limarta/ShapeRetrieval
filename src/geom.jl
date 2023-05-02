@@ -1,4 +1,4 @@
-export face_centroids, normalize_mesh, vertex_area, face_area, area_normals, normals, cot_laplacian 
+export face_centroids, normalize_mesh, vertex_area, face_area, area_normals, normals, cot_laplacian, vertex_grad, vertex_normals
 function normalize_mesh(mesh::Mesh)
     V = mesh.V
     Z = maximum(vec(norm(V,dims=1)))
@@ -24,6 +24,11 @@ function normals(V,F)
 end
 normals(mesh::Mesh) = normals(mesh.V, mesh.F)
 
+function vertex_normals(mesh::Mesh)
+    N = normals(mesh)
+    (FtoV(mesh) * N')'
+end
+
 face_area(mesh::Mesh) = vec(norm(area_normals(mesh); dims=1))
 
 function vertex_area(mesh::Mesh)
@@ -38,7 +43,6 @@ function vertex_area(mesh::Mesh)
         B[f] .+= A
     end
     B ./= 3
-    # println(sum(B))
     return B
 end
 
@@ -68,31 +72,39 @@ function cot_laplacian(mesh::Mesh)
     return -.5 * L
 end
 
-function FtoV(mesh::Mesh) end
+function FtoV(mesh::Mesh)
+    A = face_area(mesh)
+    F = mesh.F
+    G = sparse(vec(F), vec(repeat(1:mesh.nf, 1, 3)'), vec(repeat(A, 1, 3)'), mesh.nv, mesh.nf)
+    G = (G' ./ A)'
+end
+
 function VtoF(mesh::Mesh) end
-# mesh.FtoV = mesh.massMatrix \ sparse(vec(T), vec(repeat(1:mesh.nf, 1, 3)), vec(repeat(mesh.faceAreas ./ 3, 1, 3)), mesh.nv, mesh.nf)
 # mesh.VtoF = sparse(vec(repeat(1:mesh.nf, 1, 3)), vec(T), fill(1/3, length(T)), mesh.nf, mesh.nv)
 function face_grad(mesh::Mesh)
-    ∇ = spzeros(3 * mesh.nf, mesh.nf)
-    # cot(v1, v2) = dot(v1, v2) / norm(cross(v1, v2))
-    # V = mesh.V
-    # F = mesh.F
-    # for f=1:mesh.nf
-    #     u, v, w = F[:,f]...
-    #     # A =area 
-    #     A = 1
-    #     vw = V[w, :] - V[v, :]
-    #     wu = V[u, :] - V[w, :]
-    #     uv = V[v, :] - V[u, :]
-    #     vu, uw, wv = -uv, -wu, -vw
-    #     J = 3f .+ (-2:0)
-    #     ∇[J, u], ∇[J, v], ∇[J, w] = map(e->cross(data.faceNormals[f, :], e)/2A,
-    #                                              [vw, wu, uv])
-    # end
+    cot(v1, v2) = dot(v1, v2) / norm(cross(v1, v2))
+    V = mesh.V
+    F = mesh.F
+    ∇ = spzeros(3 * mesh.nf, mesh.nv)
+    A = face_area(mesh)
+    N = mesh.normals
+    for f=1:mesh.nf
+        u, v, w = F[:,f]
+        vw = V[:,w] - V[:,v]
+        wu = V[:,u] - V[:,w]
+        uv = V[:,v] - V[:,u]
+        J = 3f .+ (-2:0)
+        ∇[J, u], ∇[J, v], ∇[J, w] = map(e->cross(N[:,f], e)/2A[f], [vw, wu, uv])
+    end
     return ∇
 end
 function vertex_grad(mesh::Mesh)
-    ∇ = face_grad(mesh)  # 3|F| × V
+    # Compute 1-ring
+    # Compute in-going edges
+    ∇ = face_grad(mesh)  # 3|F| × |V|
+    P = FtoV(mesh)       # |V| × |F|
+    println("P ", size(P))
+    println("∇ ", size(∇))
     P * ∇
 end
 # function compute_operators(mesh::Mesh)
