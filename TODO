@@ -1,0 +1,4 @@
+Main Priority
+- Automate patch sampling (i.e. a portion of the mesh) for inference
+- Flux.jl for the neural layers
+- Implement vertex_grad for diffusion

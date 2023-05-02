@@ -98,14 +98,21 @@ function face_grad(mesh::Mesh)
     end
     return ∇
 end
+
+# TODO: There is a higher quality vertex grad operator found in the github repo.
 function vertex_grad(mesh::Mesh)
     # Compute 1-ring
     # Compute in-going edges
-    ∇ = face_grad(mesh)  # 3|F| × |V|
-    P = FtoV(mesh)       # |V| × |F|
-    println("P ", size(P))
-    println("∇ ", size(∇))
-    P * ∇
+    V = mesh.V
+    F = mesh.F
+    A = vertex_area(mesh)
+    I = []
+    J = []
+    vals = []
+    for f in eachcol(F)
+
+    end
+    ∇ = sparse(I,J, vals, nv, nv)
 end
 # function compute_operators(mesh::Mesh)
 #     # https://github.com/nmwsharp/diffusion-net/blob/55931bcbec8b27810f2401dd6553a975e2c8cb7e/src/diffusion_net/geometry.py#L276
