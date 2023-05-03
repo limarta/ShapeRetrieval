@@ -91,31 +91,59 @@ function face_grad(mesh::Mesh)
 end
 
 function vertex_grad(mesh::Mesh)
-    
+    # naive
+    V = mesh.V
+    F = mesh.F
+    frames = tangent_basis(mesh)
+    ∇ = zeros(2,mesh.nv,mesh.nv)
+    for i=1:mesh.nv
+        # P(∇f) = Df -> Solve via least squares -> ∇ = (P'P)^{-1}P'D
+        neighbors = [f for f in eachcol(F) if i∈f]
+        neighbors = Set(vcat(neighbors...))
+        delete!(neighbors, i)
+        neighbors = collect(neighbors)
+        edges = V[:,neighbors]
+        center = V[:,i]
+        edges = center .- edges
+        proj_edges = embed_in_plane(frames[:,i,:], edges)'
+        D = rand(size(neighbors)[1], mesh.nv)
+        grad_i = proj_edges \ D
+        ∇[:,:,i] = grad_i
+    end
+    reshape(∇, 2*mesh.nv, mesh.nv)
 end
 
-function projected_edges(mesh::Mesh)
-    frame = tangent_basis(mesh) 
-    println(size(frame))
-end
-
-function tangent_basis(mesh::Mesh)
-    # frame 2×2×|V|
-    N = vertex_normals(mesh)
-    e_1 = [1.0, 0, 0]
-    e_2 = [0, 1.0, 0]
-    t_1 = project_to_plane(N, e_1)
-    println(size(t_1))
-    t_2 = project_to_plane(N, e_2)
-    frame = zeros(6,mesh.nv)
-    frame[1:3,:] = t_1
-    frame[4:6,:] = t_2
-    frame
+function embed_in_plane(frame, edges)
+    # Project the edges onto the tangent plane defined by frame
+    e_1 = frame[:,1]
+    e_2 = frame[:,2]
+    c_1 = sum(e_1 .* edges; dims=1)
+    c_2 = sum(e_2 .* edges; dims=1)
+    embedding = [c_1; c_2]
 end
 
 function project_to_plane(normal::AbstractMatrix, u::AbstractVector)
     # Project u onto the tangent plane defined by vertex normals
     u .- vdot(normal, u;dims=1) ./ sum(normal.^2; dims=1) .* normal
+end
+
+function tangent_basis(mesh::Mesh)
+    # frame 3×|V|×2
+    N = vertex_normals(mesh)
+    e_1 = [1.0, 0, 0]
+    e_2 = [0, 1.0, 0]
+    t_1 = project_to_plane(N, e_1)
+    t_1 = t_1 ./ norm(t_1; dims=1)
+    t_2 = project_to_plane(N, e_2)
+    t_2 = t_2 ./ norm(t_2; dims=1)
+    frame = zeros(3,mesh.nv,2)
+    frame[:,:,1] = t_1
+    frame[:,:,2] = t_2
+    frame
+end
+
+function world_coordinates(mesh::Mesh, vertex_field)
+    # Change of basis to convert local coordinates to 3D ones
 end
 
 ######################

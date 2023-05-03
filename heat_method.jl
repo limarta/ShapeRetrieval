@@ -47,32 +47,38 @@ SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
 begin
-	bunny = SR.load_obj("./meshes/dragon.obj")
+	bunny = SR.load_obj("./meshes/gourd.obj")
 	bunny = SR.normalize_mesh(bunny)
-	A = SR.vertex_area(bunny)
-	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
-	heat_signal = zeros(bunny.nv)
-	heat_signal[[1]] .= 1.0
-	# @time bunny_heat = SR.heat_diffusion(bunny, heat_signal, t=0.05)
-	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=100)
+	# A = SR.vertex_area(bunny)
+	# println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
+	# heat_signal = zeros(bunny.nv)
+	# heat_signal[[1]] .= 1.0
+	# # @time bunny_heat = SR.heat_diffusion(bunny, heat_signal, t=0.05)
+	# @time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=1000)
 
-	# ∇ = SR.face_grad(bunny)
-	# field = ∇ * bunny_heat
-	vertex_normals = SR.vertex_normals(bunny)
-	println(size(vertex_normals))
-	# field = reshape(∇ * bunny_heat, 3, bunny.nf)
-	fig = SR.meshviz(bunny, color=bunny_heat, viz_field=true, field=vertex_normals, field_type=:vertex )
-	fig
+	# # ∇ = SR.face_grad(bunny)
+	# # field = ∇ * bunny_heat
+	# vertex_normals = SR.vertex_normals(bunny)
+	# println(size(vertex_normals))
+	# # field = reshape(∇ * bunny_heat, 3, bunny.nf)
+	# fig = SR.meshviz(bunny, color=bunny_heat, viz_field=true, field=vertex_normals, field_type=:vertex )
+	# fig
 end
 
 # ╔═╡ 069bceed-147b-4157-a81f-5c3a145fa94c
 begin
 	bunny
-	SR.tangent_basis(bunny)
+	frames = SR.tangent_basis(bunny)
+	heat_signal = zeros(bunny.nv)
+	heat_signal[[1]] .= 1.0
+	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=1000)
+	# vertex_field = reshape(∇ * bunny_heat, 2, bunny.nv)
+	fig = SR.meshviz(bunny, color=bunny_heat)
+	SR.viz_field!(bunny, bunny.vertex_normals, type=:vertex)
+	SR.viz_field!(bunny, frames[:,:,1], type=:vertex,color=:lime)
+	SR.viz_field!(bunny, frames[:,:,2], type=:vertex, color=:lime)
+	fig
 end
-
-# ╔═╡ 60daee2a-58ee-4e82-b231-c1efcf85a605
-
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1610,8 +1616,7 @@ version = "3.5.0+0"
 # ╠═7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
 # ╟─df42d23d-4bd9-48bc-a744-585ebc45b2f4
 # ╠═61dca968-baa2-4b37-aa7e-b251014121bf
-# ╠═530964ef-78f7-4722-955b-377ae0a2a4b8
+# ╟─530964ef-78f7-4722-955b-377ae0a2a4b8
 # ╠═069bceed-147b-4157-a81f-5c3a145fa94c
-# ╠═60daee2a-58ee-4e82-b231-c1efcf85a605
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
