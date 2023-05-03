@@ -52,7 +52,7 @@ md"""
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
 begin
-	bunny = SR.load_obj("./meshes/icosahedron.obj")
+	bunny = SR.load_obj("./meshes/gourd.obj")
 	bunny = SR.normalize_mesh(bunny)
 	A = SR.vertex_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
@@ -70,16 +70,6 @@ md"""
 ###### Vertex Normals and Tangent Plane
 """
 
-# ╔═╡ 069bceed-147b-4157-a81f-5c3a145fa94c
-begin
-	frames = SR.tangent_basis(bunny)
-	vertex_normal_fig = SR.meshviz(bunny, color=:cyan)
-	SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.1)
-	SR.viz_field!(bunny, frames[:,:,1], field_type=:vertex,color=:lime, lengthscale=0.1)
-	SR.viz_field!(bunny, frames[:,:,2], field_type=:vertex, color=:lime, lengthscale=0.1)
-	vertex_normal_fig
-end
-
 # ╔═╡ 6f6fc384-20a3-4eab-9990-5197611a43c5
 md"""
 ##### Visualizing Vertex-Based Gradient Field
@@ -90,10 +80,22 @@ begin
 	∇ = SR.vertex_grad(bunny)
 	heat_grad_field = reshape(∇*bunny_heat, 2, :)
 	heat_grad_field = SR.world_coordinates(bunny, heat_grad_field)
+	frames = SR.tangent_basis(bunny)
 	heat_grad_field_fig = SR.meshviz(bunny, color=bunny_heat)
-	SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.07)
-	SR.viz_field!(bunny, heat_grad_field, field_type=:vertex,color=:lime, lengthscale=0.1)
+	SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.01)
+	SR.viz_field!(bunny, heat_grad_field, field_type=:vertex,color=:orange, lengthscale=0.1, arrowsize=.02)
+	# SR.viz_field!(bunny, frames[:,:,1], field_type=:vertex,color=:lime, lengthscale=0.1)
+	# SR.viz_field!(bunny, frames[:,:,2], field_type=:vertex, color=:lime, lengthscale=0.1)
 	heat_grad_field_fig
+end
+
+# ╔═╡ 069bceed-147b-4157-a81f-5c3a145fa94c
+begin
+	vertex_normal_fig = SR.meshviz(bunny, color=:cyan)
+	SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.01)
+	SR.viz_field!(bunny, frames[:,:,1], field_type=:vertex,color=:lime, lengthscale=0.1)
+	SR.viz_field!(bunny, frames[:,:,2], field_type=:vertex, color=:lime, lengthscale=0.1)
+	vertex_normal_fig
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001

@@ -142,10 +142,11 @@ function tangent_basis(mesh::Mesh)
     frame
 end
 
-function world_coordinates(mesh::Mesh, vertex_field)
-    println(vertex_field)
+function world_coordinates(mesh::Mesh, gradients)
     frame = tangent_basis(mesh)
-    return rand(3, mesh.nv)
+    x_1 = gradients[1,:]' .* frame[:,:,1]
+    x_2 = gradients[2,:]' .* frame[:,:,2] 
+    x_1 + x_2
 end
 
 ######################
