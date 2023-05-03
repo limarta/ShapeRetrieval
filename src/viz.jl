@@ -29,12 +29,19 @@ function meshviz(mesh::Mesh; args...)
     fig
 end
 
-function viz_field!(mesh::Mesh, field; type::Symbol, color=:red)
+function viz_field!(mesh::Mesh, field; field_type::Symbol, kwargs...)
     # Face-based vector field
-    if type == :face
+    if field_type == :face
         X = face_centroids(mesh)
-    elseif type == :vertex
+    elseif field_type == :vertex
         X = mesh.V
     end
-    arrows!(X[1,:],X[2,:],X[3,:], field[1,:], field[2,:], field[3,:], linewidth=0.001, linecolor=color, arrowcolor=color, arrowsize=0.01, lengthscale=0.01)
+    arrow_args = Dict{Symbol, Any}()
+    arrow_args[:linewidth] = get(kwargs, :linewidth, 0.01)
+    arrow_args[:arrowsize] = get(kwargs, :arrowsize, 0.01)
+    arrow_args[:lengthscale] = get(kwargs, :lengthscale, 0.01)
+    arrow_args[:arrowcolor] = get(kwargs, :color, :red) 
+    arrow_args[:linecolor] = get(kwargs, :color, :red) 
+
+    arrows!(X[1,:],X[2,:],X[3,:], field[1,:], field[2,:], field[3,:]; arrow_args...)
 end

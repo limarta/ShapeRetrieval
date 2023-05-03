@@ -143,7 +143,9 @@ function tangent_basis(mesh::Mesh)
 end
 
 function world_coordinates(mesh::Mesh, vertex_field)
-    # Change of basis to convert local coordinates to 3D ones
+    println(vertex_field)
+    frame = tangent_basis(mesh)
+    return rand(3, mesh.nv)
 end
 
 ######################
