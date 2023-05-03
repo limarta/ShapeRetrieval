@@ -104,7 +104,8 @@ function vertex_grad(mesh::Mesh)
         neighbors = collect(neighbors)
         edges = V[:,neighbors]
         center = V[:,i]
-        edges = center .- edges
+        # edges = center .- edges
+        edges = edges .- center
         proj_edges = embed_in_plane(frames[:,i,:], edges)'
         D = zeros(size(neighbors)[1], mesh.nv)
         D[:,i] .= -1

@@ -52,14 +52,14 @@ md"""
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
 begin
-	bunny = SR.load_obj("./meshes/gourd.obj")
+	bunny = SR.load_obj("./meshes/bunny.obj")
 	bunny = SR.normalize_mesh(bunny)
 	A = SR.vertex_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
 	heat_signal = zeros(bunny.nv)
-	heat_signal[[1]] .= 1.0
+	heat_signal[[1, 2500]] .= 1.0
 	# @time bunny_heat = SR.heat_diffusion(bunny, heat_signal, t=0.05)
-	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=1000)
+	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=100)
 
 	heat_viz_fig = SR.meshviz(bunny, color=bunny_heat)
 	heat_viz_fig
@@ -77,19 +77,20 @@ md"""
 
 # ╔═╡ 4ce50587-eb8e-4d76-a51b-a4bdf1bd3bf8
 begin
+	frames = SR.tangent_basis(bunny)
 	∇ = SR.vertex_grad(bunny)
 	heat_grad_field = reshape(∇*bunny_heat, 2, :)
 	heat_grad_field = SR.world_coordinates(bunny, heat_grad_field)
-	frames = SR.tangent_basis(bunny)
+	heat_grad_field = SR.normalize_vectors(heat_grad_field, dims=1)
 	heat_grad_field_fig = SR.meshviz(bunny, color=bunny_heat)
-	SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.01)
-	SR.viz_field!(bunny, heat_grad_field, field_type=:vertex,color=:orange, lengthscale=0.1, arrowsize=.02)
-	# SR.viz_field!(bunny, frames[:,:,1], field_type=:vertex,color=:lime, lengthscale=0.1)
-	# SR.viz_field!(bunny, frames[:,:,2], field_type=:vertex, color=:lime, lengthscale=0.1)
+	# SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.001)
+	SR.viz_field!(bunny, heat_grad_field, field_type=:vertex,color=:orange, lengthscale=0.01, arrowsize=.01, linewidth=0.001)
 	heat_grad_field_fig
 end
 
 # ╔═╡ 069bceed-147b-4157-a81f-5c3a145fa94c
+# ╠═╡ disabled = true
+#=╠═╡
 begin
 	vertex_normal_fig = SR.meshviz(bunny, color=:cyan)
 	SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.01)
@@ -97,6 +98,7 @@ begin
 	SR.viz_field!(bunny, frames[:,:,2], field_type=:vertex, color=:lime, lengthscale=0.1)
 	vertex_normal_fig
 end
+  ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1637,7 +1639,7 @@ version = "3.5.0+0"
 # ╟─e3f1500b-017d-4d93-ade5-ad025626cf1c
 # ╠═530964ef-78f7-4722-955b-377ae0a2a4b8
 # ╟─46ad806d-ce7c-4f25-82d4-b26254365977
-# ╠═069bceed-147b-4157-a81f-5c3a145fa94c
+# ╟─069bceed-147b-4157-a81f-5c3a145fa94c
 # ╟─6f6fc384-20a3-4eab-9990-5197611a43c5
 # ╠═4ce50587-eb8e-4d76-a51b-a4bdf1bd3bf8
 # ╟─00000000-0000-0000-0000-000000000001
