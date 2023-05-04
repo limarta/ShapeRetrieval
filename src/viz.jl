@@ -1,15 +1,5 @@
 using WGLMakie
-# export meshviz
 
-# TODO: Fix axis orientation
-# scene = Scene(fig.scene)
-# Makie.rotate!(scene, Makie.Vec3f(0,0,1), π/4)
-# ϕ = -π/4
-# v = Makie.Vec3f(300, 300, 0)
-# for p in scene.plots
-#     Makie.rotate!(p, Makie.Vec3f(0,0,1)3, ϕ)
-#     translate!(p, v)
-# end
 function meshviz(mesh::Mesh; args...)
     V = mesh.V
     F = mesh.F

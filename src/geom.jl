@@ -25,7 +25,7 @@ function cot_laplacian(V,F)
     L = L + L'
     rowsums = vec(sum(L,dims=2))
     L = spdiagm(0 => rowsums) - L
-    return -.5 * L
+    return 0.5 * L
 end
 
 face_area(V,F) = vec(norm(area_normals(V,F); dims=1))
@@ -114,9 +114,9 @@ function vertex_grad(mesh::Mesh)
         grad_i = proj_edges \ D
         ∇[:,:,i] = grad_i
     end
-    display(∇[:, 1:3, 1])
+    # display(∇[:, 1:3, 1])
     ∇ = reshape(permutedims(∇,[1,3,2]), 2*mesh.nv,mesh.nv)
-    display(∇[1:2, :])
+    # display(∇[1:2, :])
     ∇
     # reshape(∇, 2*mesh.nv, mesh.nv)
 end
@@ -169,4 +169,6 @@ FtoV(mesh::Mesh) = FtoV(mesh.V, mesh.F, face_area(mesh))
 normals(mesh::Mesh) = normals(mesh.V, mesh.F)
 normalize_mesh(mesh::Mesh) = normalize_mesh(mesh.V, mesh.F)
 vertex_area(mesh::Mesh) = vertex_area(mesh.V, mesh.F)
-vertex_normals(mesh::Mesh) = vertex_normals(mesh.V,mesh.F, face_area(mesh))
+vertex_normals(mesh::Mesh) = vertex_normals(mesh.V,mesh.F, mesh.face_area)
+
+export cot_laplacian

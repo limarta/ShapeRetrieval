@@ -14,9 +14,10 @@ end
 
 include("mesh.jl")
 include("load_obj.jl")
-include("utils.jl")
 include("geom.jl")
 include("heat.jl")
 include("viz.jl")
+include("utils.jl")
+include("diffusion.jl")
 
 end # module ShapeRetrieval

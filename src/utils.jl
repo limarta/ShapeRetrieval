@@ -26,3 +26,14 @@ function readoff(filename::String)
         X, T
     end
 end
+
+
+function get_diffusion_inputs(mesh, method::Symbol=:spectral)
+    if method == :spectral
+        A = mesh.vertex_area
+        λ, ϕ =  get_spectrum(mesh)
+        return λ, ϕ, A
+    elseif method == :implicit
+        return mesh.cot_laplacian, spdiagm(mesh.vertex_area), mesh.vertex_area
+    end
+end
