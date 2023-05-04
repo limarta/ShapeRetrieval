@@ -4,31 +4,31 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ f5c7e762-9b5f-427b-a6e8-63efac459a35
-using WGLMakie
-
-# ╔═╡ b2504ee4-fcfd-47ff-892b-d73ba20428ea
-using Arpack
-
-# ╔═╡ 03057105-fa63-4143-8316-09cbb290e790
+# ╔═╡ e442d490-e277-4617-b437-82654d05c3a5
 using LinearAlgebra
 
-# ╔═╡ 47580825-37ab-4b34-80c4-5e7425eeeae6
+# ╔═╡ d2ffa34a-4dc6-4e8e-b04a-a486cad5783a
+using WGLMakie
+
+# ╔═╡ 2f9835a0-6410-44a4-905b-35117182d1b0
+using Arpack
+
+# ╔═╡ c5987585-5c37-471e-8d21-faf81f9eeca7
 using SparseArrays
 
-# ╔═╡ 529cf435-dd0e-4764-8cb0-f1cb30bb76bf
+# ╔═╡ f8b2155c-73c6-4689-80e6-e8bc5a6dd3c9
 using Flux
 
-# ╔═╡ e41efaf3-b193-451f-893c-7d096c28a66a
+# ╔═╡ 65fefab0-ea3e-11ed-2f6f-175b14acddf4
 Threads.nthreads()
 
-# ╔═╡ d095560b-6169-4d1c-b600-bd6c437bbc73
+# ╔═╡ d55806e3-12b5-46d5-90d6-6342b89849a7
 WGLMakie.activate!()
 
-# ╔═╡ 7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
+# ╔═╡ aecf9ac9-8435-445a-b985-a7704b0de05e
 Makie.inline!(true)
 
-# ╔═╡ df42d23d-4bd9-48bc-a744-585ebc45b2f4
+# ╔═╡ 83bf7194-cc29-4fb5-8d0f-e38ae00dc93e
 function __ingredients(path::String)
 	# this is from the Julia source code (evalfile in base/loading.jl)
 	# but with the modification that it returns the module instead of the last object
@@ -42,70 +42,13 @@ function __ingredients(path::String)
 	m
 end
 
-# ╔═╡ 61dca968-baa2-4b37-aa7e-b251014121bf
+# ╔═╡ 5eb160e2-b455-4471-8efb-04ec107ed164
 SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
-# ╔═╡ e3f1500b-017d-4d93-ade5-ad025626cf1c
-md"""
-##### Heat Diffusion by Iteration
-"""
-
-# ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
+# ╔═╡ 1ddba698-2cb2-4d34-ba78-3bfe74666992
 begin
-	bunny = SR.load_obj("./meshes/bunny.obj")
-	bunny = SR.normalize_mesh(bunny)
-	A = SR.vertex_area(bunny)
-	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
-	heat_signal = zeros(bunny.nv)
-	heat_signal[[1, 300]] .= 1.0
-	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=100)
-
-	heat_viz_fig = SR.meshviz(bunny, color=bunny_heat)
-	heat_viz_fig
-end
-
-# ╔═╡ d6faf275-8cb4-4140-9d27-81e138f504a5
-md"""
-##### Heat Iteration with Spectrum
-"""
-
-# ╔═╡ bf4adc3c-7c8b-4099-affc-0a264fb1d886
-begin
-	@time λ, ϕ = SR.get_spectrum(bunny)
-	@time heat_by_spectrum = SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_signal, .01)
-	heat_by_spectrum_viz_fig = SR.meshviz(bunny, color=heat_by_spectrum)
-	heat_by_spectrum_viz_fig
-end
-
-# ╔═╡ f4f66184-bd23-4477-859f-9c1629b5abab
-md"""
-##### Vectorizing Heat Diffusion
-"""
-
-# ╔═╡ 46ad806d-ce7c-4f25-82d4-b26254365977
-md"""
-###### Vertex Normals and Tangent Plane
-"""
-
-# ╔═╡ 6f6fc384-20a3-4eab-9990-5197611a43c5
-md"""
-##### Visualizing Vertex-Based Gradient Field
-"""
-
-# ╔═╡ 8bf59e28-6b67-45af-ad3d-60cb625868e3
-begin
-	S = 10000
-	AAA = randn(S,S); AAA = AAA'*AAA; AAA = (AAA + AAA')/2
-	b = rand(S)
-	N = 100
-	@time F = cholesky(AAA)
-	# @time for i=1:N
-	# 	AAA \ b
-	# end
-
-	@time for i=1:N
-		F \ b
-	end
+	mini_mlp = SR.MLP([2,3,5])
+	mini_mlp(rand(Float32,2,10))
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1309,9 +1252,9 @@ version = "0.1.2"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
-git-tree-sha1 = "2e47054ffe7d0a8872e977c0d09eb4b3d162ebde"
+git-tree-sha1 = "0c265aa64283740b9b885348ee52463084de0748"
 uuid = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
-version = "1.0.2"
+version = "1.0.3"
 
 [[deps.Preferences]]
 deps = ["TOML"]
@@ -1564,9 +1507,9 @@ version = "0.1.1"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "StaticArraysCore", "Statistics"]
-git-tree-sha1 = "fd9a77cfd87116a27b2121c1988045f428b35a36"
+git-tree-sha1 = "c262c8e978048c2b095be1672c9bee55b4619521"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.5.22"
+version = "1.5.24"
 
 [[deps.StaticArraysCore]]
 git-tree-sha1 = "6b7ba252635a5eff6a0b0664a41ee140a1c9e72a"
@@ -1899,23 +1842,16 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═e41efaf3-b193-451f-893c-7d096c28a66a
-# ╠═f5c7e762-9b5f-427b-a6e8-63efac459a35
-# ╠═b2504ee4-fcfd-47ff-892b-d73ba20428ea
-# ╠═03057105-fa63-4143-8316-09cbb290e790
-# ╠═47580825-37ab-4b34-80c4-5e7425eeeae6
-# ╠═d095560b-6169-4d1c-b600-bd6c437bbc73
-# ╠═7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
-# ╠═df42d23d-4bd9-48bc-a744-585ebc45b2f4
-# ╠═61dca968-baa2-4b37-aa7e-b251014121bf
-# ╟─e3f1500b-017d-4d93-ade5-ad025626cf1c
-# ╠═530964ef-78f7-4722-955b-377ae0a2a4b8
-# ╟─d6faf275-8cb4-4140-9d27-81e138f504a5
-# ╠═bf4adc3c-7c8b-4099-affc-0a264fb1d886
-# ╟─f4f66184-bd23-4477-859f-9c1629b5abab
-# ╟─46ad806d-ce7c-4f25-82d4-b26254365977
-# ╟─6f6fc384-20a3-4eab-9990-5197611a43c5
-# ╠═8bf59e28-6b67-45af-ad3d-60cb625868e3
-# ╠═529cf435-dd0e-4764-8cb0-f1cb30bb76bf
+# ╠═65fefab0-ea3e-11ed-2f6f-175b14acddf4
+# ╠═e442d490-e277-4617-b437-82654d05c3a5
+# ╠═d2ffa34a-4dc6-4e8e-b04a-a486cad5783a
+# ╠═2f9835a0-6410-44a4-905b-35117182d1b0
+# ╠═c5987585-5c37-471e-8d21-faf81f9eeca7
+# ╠═f8b2155c-73c6-4689-80e6-e8bc5a6dd3c9
+# ╠═d55806e3-12b5-46d5-90d6-6342b89849a7
+# ╠═aecf9ac9-8435-445a-b985-a7704b0de05e
+# ╟─83bf7194-cc29-4fb5-8d0f-e38ae00dc93e
+# ╠═5eb160e2-b455-4471-8efb-04ec107ed164
+# ╠═1ddba698-2cb2-4d34-ba78-3bfe74666992
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
