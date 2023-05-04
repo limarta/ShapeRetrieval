@@ -45,11 +45,43 @@ end
 # ╔═╡ 5eb160e2-b455-4471-8efb-04ec107ed164
 SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
+# ╔═╡ ed426449-a9e4-468b-abe1-adf6b2e78f5a
+md"""
+Load Mesh and Precompute Operators
+"""
+
 # ╔═╡ 1ddba698-2cb2-4d34-ba78-3bfe74666992
 begin
-	mini_mlp = SR.MLP([2,3,5])
-	mini_mlp(rand(Float32,2,10))
+	bunny = SR.load_obj("./meshes/gourd.obj")
+	L, M, A, λ, ϕ, grad_x, grad_y = SR.get_operators(bunny);
 end
+
+# ╔═╡ adf1619e-2381-499d-9af3-3398f126b709
+md"""
+Create Input Data
+"""
+
+# ╔═╡ 8d10f5c8-48e2-48c0-b754-b5a985c7300f
+begin
+	x = 1
+end
+
+# ╔═╡ 572a9dbe-70c6-4142-b43f-cc26cd147b9f
+md"""
+Learned Time Diffusion Layer
+"""
+
+# ╔═╡ 0ea4d2d2-c3d8-4f38-a60c-298924a71840
+begin
+	ltdb = SR.LearnedTimeDiffusionBlock(2, :spectral)
+	x_diffuse_example = ltdb(x, L, M, A)
+
+end
+
+# ╔═╡ 198e34a6-37ef-4046-9f8e-3604be2c15eb
+md"""
+Diffusion Block
+"""
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1852,6 +1884,12 @@ version = "3.5.0+0"
 # ╠═aecf9ac9-8435-445a-b985-a7704b0de05e
 # ╟─83bf7194-cc29-4fb5-8d0f-e38ae00dc93e
 # ╠═5eb160e2-b455-4471-8efb-04ec107ed164
+# ╟─ed426449-a9e4-468b-abe1-adf6b2e78f5a
 # ╠═1ddba698-2cb2-4d34-ba78-3bfe74666992
+# ╟─adf1619e-2381-499d-9af3-3398f126b709
+# ╠═8d10f5c8-48e2-48c0-b754-b5a985c7300f
+# ╟─572a9dbe-70c6-4142-b43f-cc26cd147b9f
+# ╠═0ea4d2d2-c3d8-4f38-a60c-298924a71840
+# ╟─198e34a6-37ef-4046-9f8e-3604be2c15eb
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

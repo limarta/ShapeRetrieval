@@ -16,7 +16,7 @@ using LinearAlgebra
 # ╔═╡ 47580825-37ab-4b34-80c4-5e7425eeeae6
 using SparseArrays
 
-# ╔═╡ 529cf435-dd0e-4764-8cb0-f1cb30bb76bf
+# ╔═╡ d107b69a-99c1-403a-ac42-92ecc0f524ec
 using Flux
 
 # ╔═╡ e41efaf3-b193-451f-893c-7d096c28a66a
@@ -94,18 +94,24 @@ md"""
 
 # ╔═╡ 8bf59e28-6b67-45af-ad3d-60cb625868e3
 begin
-	S = 10000
-	AAA = randn(S,S); AAA = AAA'*AAA; AAA = (AAA + AAA')/2
-	b = rand(S)
-	N = 100
-	@time F = cholesky(AAA)
-	# @time for i=1:N
-	# 	AAA \ b
-	# end
+	frames = SR.tangent_basis(bunny)
+	∇ = SR.vertex_grad(bunny)
+	heat_grad_field = reshape(∇*bunny_heat, 2, :)
+	heat_grad_field = SR.world_coordinates(bunny, heat_grad_field)
+	heat_grad_field = SR.normalize_vectors(heat_grad_field, dims=1)
+	heat_grad_field_fig = SR.meshviz(bunny, color=bunny_heat)
+	# SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.001)
+	SR.viz_field!(bunny, heat_grad_field, field_type=:vertex,color=:orange, lengthscale=0.01, arrowsize=.01, linewidth=0.001)
+	heat_grad_field_fig
+end
 
-	@time for i=1:N
-		F \ b
-	end
+# ╔═╡ 98075375-e45e-4c2f-9097-a924ae266948
+begin
+	vertex_normal_fig = SR.meshviz(bunny, color=:cyan)
+	SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.01)
+	SR.viz_field!(bunny, frames[:,:,1], field_type=:vertex,color=:lime, lengthscale=0.1)
+	SR.viz_field!(bunny, frames[:,:,2], field_type=:vertex, color=:lime, lengthscale=0.1)
+	vertex_normal_fig
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1904,9 +1910,10 @@ version = "3.5.0+0"
 # ╠═b2504ee4-fcfd-47ff-892b-d73ba20428ea
 # ╠═03057105-fa63-4143-8316-09cbb290e790
 # ╠═47580825-37ab-4b34-80c4-5e7425eeeae6
+# ╠═d107b69a-99c1-403a-ac42-92ecc0f524ec
 # ╠═d095560b-6169-4d1c-b600-bd6c437bbc73
 # ╠═7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
-# ╠═df42d23d-4bd9-48bc-a744-585ebc45b2f4
+# ╟─df42d23d-4bd9-48bc-a744-585ebc45b2f4
 # ╠═61dca968-baa2-4b37-aa7e-b251014121bf
 # ╟─e3f1500b-017d-4d93-ade5-ad025626cf1c
 # ╠═530964ef-78f7-4722-955b-377ae0a2a4b8
@@ -1914,8 +1921,8 @@ version = "3.5.0+0"
 # ╠═bf4adc3c-7c8b-4099-affc-0a264fb1d886
 # ╟─f4f66184-bd23-4477-859f-9c1629b5abab
 # ╟─46ad806d-ce7c-4f25-82d4-b26254365977
+# ╠═98075375-e45e-4c2f-9097-a924ae266948
 # ╟─6f6fc384-20a3-4eab-9990-5197611a43c5
 # ╠═8bf59e28-6b67-45af-ad3d-60cb625868e3
-# ╠═529cf435-dd0e-4764-8cb0-f1cb30bb76bf
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
