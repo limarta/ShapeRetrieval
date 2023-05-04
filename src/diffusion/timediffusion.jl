@@ -1,4 +1,3 @@
-using Flux
 export LearnedTimeDiffusionBlock
 
 # Diffusion block = diffusion + inner product + dense layer
@@ -37,6 +36,7 @@ function (model::LearnedTimeDiffusionBlock)(x, λ::Vector{ComplexF64}, ϕ::Matri
     # x - feature 
     # λ, ϕ - eigvals, eigvecs
     # A - vertex area
+    println((λ * model.diffusion_time'))
     time = max(model.diffusion_time[1],1e-8)
     x_diffused = heat_diffusion(λ, ϕ, A, x, time)
     sum(x_diffused)

@@ -19,7 +19,8 @@ function heat_diffusion(mesh::Mesh, L, A, signal; t=1.0, k=200)
     heat = abs.(ϕ * c)
 end
 function heat_diffusion(λ::Vector{ComplexF64}, ϕ::Matrix{ComplexF64}, A::Vector{Float64}, init, t)
-    c = ϕ'*(init .* A) .*exp.(-t* λ)
+    # init - |V| or |V|×|C|
+    c = ϕ'*(A .* init) .* exp.(-λ * t')
     heat = abs.(ϕ * c)
 end
 
