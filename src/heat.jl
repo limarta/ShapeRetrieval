@@ -17,6 +17,8 @@ function heat_diffusion(L, A, init, t; k=200)
 end
 function heat_diffusion(λ::Vector{ComplexF64}, ϕ::Matrix{ComplexF64}, A::Vector{Float64}, init, t)
     # init - |V| or |V|×|C|
+    # note that init may be a single vector or length(t) vectors. If it is a single vector, then heat is diffused for each time t. If it is
+    # multiple vectors, then vector init[i] is diffused for time t[i]
     c = ϕ'*(A .* init) .* exp.(-λ * t')
     heat = abs.(ϕ * c)
 end

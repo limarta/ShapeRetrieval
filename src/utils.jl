@@ -29,7 +29,7 @@ end
 
 function get_operators(mesh; k=200)
     λ, ϕ = get_spectrum(mesh, k=k)
-    mesh.cot_laplacian, spdiagm(mesh.vertex_area), mesh.vertex_area, λ, ϕ, vertex_grad(mesh), vertex_grad(mesh)
+    mesh.cot_laplacian, spdiagm(mesh.vertex_area), mesh.vertex_area, λ, ϕ, vertex_grad(mesh)
 end
 
 function get_diffusion_inputs(mesh, method::Symbol=:spectral)

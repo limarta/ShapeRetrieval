@@ -1,35 +1,43 @@
 include("timediffusion.jl")
 include("minimlp.jl")
+include("diffusionblock.jl")
 
-struct DiffusionNetBlock
-    C_width::Int
-    diffusion_method::Symbol
-    diffuse_block::LearnedTimeDiffusionBlock
-    spatial_gradient::Flux.Bilinear
+struct DiffusionNet
+    C_in::Int # Input dimension
+    C_out::Int 
+    C_width::Int # dimension of internal block
+    N_block::Int 
+    last_activation::Bool
+    outputs_at::Symbol # vertex/face
+    mlp_hidden_dims::Vector{Int} 
+    dropout::Bool
     with_gradient_features::Bool
     with_gradient_rotations::Bool
-    mlp::Flux.Chain
-end
-function DiffusionNetBlock(C_width::Int64, mlp_hidden_dims; diffusion_method::Symbol = :spectral, dropout=true, 
-    with_gradient_features=true, with_gradient_rotations=true)
-    diffuse_block = LearnedTimeDiffusionBlock(C_width, diffusion_method) 
-    if with_gradient_features
-        spatial_gradient = Flux.Bilinear((0,0)=>0)
-    else
-        spatial_gradient = Flux.Bilinear((0,0)=>0)
+    diffusion_method::Symbol
+    first::Flux.Dense
+    last::Flux.Dense
+    blocks::DiffusionNetBlock
+
+    function DiffusionNet(C_in, C_out, C_width, N_block, last_activation=true, outputs_at=:vertex, mlp_hidden_dims=nothing, dropout=true, 
+        with_gradient_features=true, with_gradient_rotations=true, diffusion_method=:spectral)
+        if mlp_hidden_dims === nothing
+            mlp_hidden_dims = [C_width,]
+        end
+        first = Dense(C_in=>C_width)
+        last = Dense(C_width=>C_out)
+        b1 = DiffusionNetBlock(C_width, mlp_hidden_dims; diffusion_method=diffusion_method,
+            dropout=dropout, with_gradient_features=with_gradient_features, with_gradient_rotations=with_gradient_rotations)
+        blocks = b1 # Fix to make multiple blocks
+        new(C_in, C_out, C_width, N_block, last_activation, outputs_at, mlp_hidden_dims, dropout, with_gradient_features, with_gradient_rotations,
+        diffusion_method, first, last, blocks)
     end
-    # spatial_gradient = Flux.Bilinear((1,1)=>2)
-    mlp_layers = vcat(C_width, mlp_hidden_dims, C_width)
-    mlp = MLP(mlp_layers, dropout)
-    DiffusionNetBlock(C_width, diffusion_method, diffuse_block, spatial_gradient, with_gradient_features, with_gradient_rotations, mlp)
 end
 
-function (model::DiffusionNetBlock)(x, L, M, A, λ, ϕ, ∇_x, ∇_y)
-    # run diffusion_method
-    if diffusion_method == :spectral
-        x_diffused = diffusion_block(x, λ, ϕ, A)
-    else
-        x_diffused = diffusion_block(x, λ, ϕ, A)
-    end
-    x_out = model.mlp(x_diffused)
+@Flux.functor DiffusionNet
+Flux.trainable(net::DiffusionNet) = (first=net.first, blocks=net.blocks, last=net.last)
+
+function (model::DiffusionNet)(x, L, M, A, λ, ϕ, ∇)
+    x_in = model.first(x')'
+    x_imm = model.blocks(x_in, L, M, A, λ, ϕ, ∇)
+    x_out = model.last(x_imm)
 end

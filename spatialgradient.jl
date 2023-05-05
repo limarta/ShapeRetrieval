@@ -53,7 +53,9 @@ Load Mesh and Precompute Operators
 # ╔═╡ 1ddba698-2cb2-4d34-ba78-3bfe74666992
 begin
 	bunny = SR.load_obj("./meshes/gourd.obj")
-	L, M, A, λ, ϕ, grad_x, grad_y = SR.get_operators(bunny);
+	println("Vertices $(bunny.nv) Faces $(bunny.nf)")
+	L, M, A, λ, ϕ, ∇ = SR.get_operators(bunny);
+	nothing
 end
 
 # ╔═╡ adf1619e-2381-499d-9af3-3398f126b709
@@ -63,7 +65,9 @@ Create Input Data
 
 # ╔═╡ 8d10f5c8-48e2-48c0-b754-b5a985c7300f
 begin
-	x = 1
+	# heat_init = zeros(bunny.nv,2)
+	heat_init = zeros(bunny.nv,2)
+	heat_init[1,1] = 1.0 #  can be|V|×|C| input
 end
 
 # ╔═╡ 572a9dbe-70c6-4142-b43f-cc26cd147b9f
@@ -74,14 +78,38 @@ Learned Time Diffusion Layer
 # ╔═╡ 0ea4d2d2-c3d8-4f38-a60c-298924a71840
 begin
 	ltdb = SR.LearnedTimeDiffusionBlock(2, :spectral)
-	x_diffuse_example = ltdb(x, L, M, A)
-
+	x_diffuse_example = ltdb(heat_init, λ, ϕ, A)
+	heat_viz_fig = SR.meshviz(bunny, color=x_diffuse_example[:,1])
 end
 
 # ╔═╡ 198e34a6-37ef-4046-9f8e-3604be2c15eb
 md"""
 Diffusion Block
 """
+
+# ╔═╡ 429b55d0-bc43-40af-86c6-acd31c627373
+begin
+	dnb = SR.DiffusionNetBlock(3, [2,4], with_gradient_features=false)
+	fake_inputs = rand(Float32, bunny.nv,3)
+	dnb(fake_inputs, L, M, A, λ, ϕ, ∇)
+end
+
+# ╔═╡ 5aa34727-c41a-4533-8e9d-a186fba5a20f
+md"""
+##### Diffusion Net
+"""
+
+# ╔═╡ ceeafdb4-3474-487d-acd1-5a77c820e0a5
+begin
+	net = SR.DiffusionNet(3, 2, 3, 1)
+	net(fake_inputs, L, M, A, λ, ϕ, ∇)
+end
+
+# ╔═╡ d5d91582-e4b0-4105-853d-6634edffb420
+begin
+	bilinear = Flux.Bilinear((4,4)=>1)
+	bilinear((rand(4, 3), rand(4,3)))
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1891,5 +1919,9 @@ version = "3.5.0+0"
 # ╟─572a9dbe-70c6-4142-b43f-cc26cd147b9f
 # ╠═0ea4d2d2-c3d8-4f38-a60c-298924a71840
 # ╟─198e34a6-37ef-4046-9f8e-3604be2c15eb
+# ╠═429b55d0-bc43-40af-86c6-acd31c627373
+# ╟─5aa34727-c41a-4533-8e9d-a186fba5a20f
+# ╠═ceeafdb4-3474-487d-acd1-5a77c820e0a5
+# ╠═d5d91582-e4b0-4105-853d-6634edffb420
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

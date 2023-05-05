@@ -114,11 +114,7 @@ function vertex_grad(mesh::Mesh)
         grad_i = proj_edges \ D
         ∇[:,:,i] = grad_i
     end
-    # display(∇[:, 1:3, 1])
     ∇ = reshape(permutedims(∇,[1,3,2]), 2*mesh.nv,mesh.nv)
-    # display(∇[1:2, :])
-    ∇
-    # reshape(∇, 2*mesh.nv, mesh.nv)
 end
 
 function embed_in_plane(frame, edges)
