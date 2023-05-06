@@ -28,7 +28,7 @@ function DiffusionNetBlock(C_width::Int, mlp_hidden_dims; diffusion_method = :sp
     DiffusionNetBlock(C_width, diffusion_method, diffusion_block, spatial_gradient, with_gradient_features, with_gradient_rotations, mlp)
 end
 
-function (model::DiffusionNetBlock)(x, L, M, A, λ, ϕ)
+function (model::DiffusionNetBlock)(x, L, M, A, λ, ϕ, ∇_x, ∇_y)
     # x - |V|×|C|×|B|
 
     # Diffusion
@@ -38,10 +38,18 @@ function (model::DiffusionNetBlock)(x, L, M, A, λ, ϕ)
         x_diffused = model.diffusion_block(x, L, M, A)
     end
     # Compute gradients and stack by feature
-    # x_grad = reshape(reshape(∇ * x_diffused, 2, :, model.C_width), model.C_width, :, 2)
-    # model.spatial_gradient(x_grad[:,:,1], x_grad[:,:,1])
-    # Combine by feature
+    if model.with_gradient_features
+        grad_x = (∇_x * x_diffused)'
+        grad_y = (∇_y * x_diffused)'
+        metric = model.spatial_gradient(grad_x, grad_x)
+        y = Float32.(metric)
+        println("mlp ", model.mlp)
+        println(size(y))
+        x_out = model.mlp(y')
+        return x_out
+    else
+        y = Float32.(x_diffused)
+        x_out = model.mlp(y')
+    end
 
-    y = Float32.(x_diffused)
-    x_out = model.mlp(y')
 end
