@@ -54,7 +54,7 @@ Load Mesh and Precompute Operators
 begin
 	bunny = SR.load_obj("./meshes/gourd.obj")
 	println("Vertices $(bunny.nv) Faces $(bunny.nf)")
-	L, M, A, λ, ϕ, ∇ = SR.get_operators(bunny);
+	L, M, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
 	nothing
 end
 
@@ -89,9 +89,9 @@ Diffusion Block
 
 # ╔═╡ 429b55d0-bc43-40af-86c6-acd31c627373
 begin
-	dnb = SR.DiffusionNetBlock(3, [2,4], with_gradient_features=false)
+	dnb = SR.DiffusionNetBlock(3, [2,4], with_gradient_features=true)
 	fake_inputs = rand(Float32, bunny.nv,3)
-	dnb(fake_inputs, L, M, A, λ, ϕ, ∇)
+	dnb(fake_inputs, L, M, A, λ, ϕ, ∇_x, ∇_y)
 end
 
 # ╔═╡ 5aa34727-c41a-4533-8e9d-a186fba5a20f
@@ -102,13 +102,19 @@ md"""
 # ╔═╡ ceeafdb4-3474-487d-acd1-5a77c820e0a5
 begin
 	net = SR.DiffusionNet(3, 2, 3, 1)
-	net(fake_inputs, L, M, A, λ, ϕ, ∇)
+	net(fake_inputs, L, M, A, λ, ϕ, ∇_x, ∇_y)
 end
 
 # ╔═╡ d5d91582-e4b0-4105-853d-6634edffb420
 begin
 	bilinear = Flux.Bilinear((4,4)=>1)
 	bilinear((rand(4, 3), rand(4,3)))
+end
+
+# ╔═╡ 3db353d1-e7e8-4c68-b5d2-97dae5528f51
+begin
+	decomposed_V = SR.spectral_decomposition(bunny, ϕ)
+	decomposed_bunny = SR.Mesh(decomposed_V', bunny.F)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1923,5 +1929,6 @@ version = "3.5.0+0"
 # ╟─5aa34727-c41a-4533-8e9d-a186fba5a20f
 # ╠═ceeafdb4-3474-487d-acd1-5a77c820e0a5
 # ╠═d5d91582-e4b0-4105-853d-6634edffb420
+# ╠═3db353d1-e7e8-4c68-b5d2-97dae5528f51
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

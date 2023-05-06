@@ -15,7 +15,8 @@ function heat_diffusion(L, A, init, t; k=200)
     λ, ϕ = eigs(L ./ A, nev=k, sigma=1e-8)
     heat_diffusion(λ, ϕ, A, init, t)
 end
-function heat_diffusion(λ::Vector{ComplexF64}, ϕ::Matrix{ComplexF64}, A::Vector{Float64}, init, t)
+
+function heat_diffusion(λ::Vector{T}, ϕ::Matrix{T}, A::Vector{Float64}, init, t) where T <: Union{ComplexF64, Float64}
     # init - |V| or |V|×|C|
     # note that init may be a single vector or length(t) vectors. If it is a single vector, then heat is diffused for each time t. If it is
     # multiple vectors, then vector init[i] is diffused for time t[i]

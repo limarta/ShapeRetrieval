@@ -23,6 +23,16 @@ function Mesh(V,F,N)
 end
 Mesh(V, F) = Mesh(V, F, normals(V,F))
 
-function add_vertices(mesh::Mesh, V) end
-function add_faces(mesh::Mesh, F) end
+
+function spectral_decomposition(mesh::Mesh, ϕ)
+    c = ϕ'*(mesh.vertex_area .* mesh.V')
+    real.(ϕ * c)
+end
+
+function smooth_spectral_decomposition(mesh::Mesh, K::Int, ϕ)
+    c = ϕ'*(mesh.vertex_area .* mesh.V')
+    decaying = [sigmoid(K-k) for k=1:size(ϕ)[2]]
+    damped_c = decaying .* c
+    real.(ϕ * damped_c)
+end
 

@@ -52,13 +52,13 @@ md"""
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
 begin
-	bunny = SR.load_obj("./meshes/bunny.obj")
+	bunny = SR.load_obj("./meshes/dragon.obj")
 	bunny = SR.normalize_mesh(bunny)
 	A = SR.vertex_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
 	heat_signal = zeros(bunny.nv)
-	heat_signal[[1, 300]] .= 1.0
-	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=100)
+	heat_signal[[1, 2]] .= 1.0
+	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.0001, steps=1)
 
 	heat_viz_fig = SR.meshviz(bunny, color=bunny_heat)
 	heat_viz_fig
@@ -72,7 +72,7 @@ md"""
 # ╔═╡ bf4adc3c-7c8b-4099-affc-0a264fb1d886
 begin
 	@time λ, ϕ = SR.get_spectrum(bunny)
-	@time heat_by_spectrum = SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_signal, .01)
+	@time heat_by_spectrum = SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_signal, 1)
 	heat_by_spectrum_viz_fig = SR.meshviz(bunny, color=heat_by_spectrum)
 	heat_by_spectrum_viz_fig
 end
@@ -87,31 +87,67 @@ md"""
 ###### Vertex Normals and Tangent Plane
 """
 
+# ╔═╡ 98075375-e45e-4c2f-9097-a924ae266948
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	frames = SR.tangent_basis(bunny)
+	vertex_normal_fig = SR.meshviz(bunny, color=:cyan)
+	SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.005, linewidth=0.005)
+	SR.viz_field!(bunny, frames[:,:,1], field_type=:vertex,color=:lime, lengthscale=0.01, linewidth=0.005)
+	SR.viz_field!(bunny, frames[:,:,2], field_type=:vertex, color=:lime, lengthscale=0.01, linewidth=0.005)
+	vertex_normal_fig
+end
+  ╠═╡ =#
+
 # ╔═╡ 6f6fc384-20a3-4eab-9990-5197611a43c5
 md"""
 ##### Visualizing Vertex-Based Gradient Field
 """
 
-# ╔═╡ 8bf59e28-6b67-45af-ad3d-60cb625868e3
+# ╔═╡ 33ef86ad-c676-4def-a65a-778f4959b6e6
+# ╠═╡ disabled = true
+#=╠═╡
 begin
-	frames = SR.tangent_basis(bunny)
-	∇ = SR.vertex_grad(bunny)
-	heat_grad_field = reshape(∇*bunny_heat, 2, :)
-	heat_grad_field = SR.world_coordinates(bunny, heat_grad_field)
-	heat_grad_field = SR.normalize_vectors(heat_grad_field, dims=1)
-	heat_grad_field_fig = SR.meshviz(bunny, color=bunny_heat)
-	# SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.001)
-	SR.viz_field!(bunny, heat_grad_field, field_type=:vertex,color=:orange, lengthscale=0.01, arrowsize=.01, linewidth=0.001)
-	heat_grad_field_fig
+	∇_x, ∇_y = SR.vertex_grad(bunny)
+	heat_grad_x = ∇_x * bunny_heat
+	heat_grad_y = ∇_y * bunny_heat
+	heat_grad_field_for_split = [heat_grad_x ;; heat_grad_y]'
+	println(minimum(abs.(heat_grad_field_for_split)), " ",maximum(abs.(heat_grad_field_for_split)))
+	heat_grad_field_for_split = SR.world_coordinates(bunny, heat_grad_field_for_split)
+	# heat_grad_field_for_split = SR.normalize_vectors(heat_grad_field_for_split, dims=1)
+	heat_grad_field_for_split_fig = SR.meshviz(bunny, color=bunny_heat)
+	SR.viz_field!(bunny, heat_grad_field_for_split, field_type=:vertex,color=:orange, lengthscale=0.01, arrowsize=.01, linewidth=0.001)
+	heat_grad_field_for_split_fig
 end
+  ╠═╡ =#
 
-# ╔═╡ 98075375-e45e-4c2f-9097-a924ae266948
+# ╔═╡ abfa93ea-e45a-4a51-8350-7aaa74a9f1ee
+md"""
+Decomposed Mesh
+"""
+
+# ╔═╡ 139bbeae-a6af-4b58-b01e-9ce2fee3dc8a
+# ╠═╡ disabled = true
+#=╠═╡
 begin
-	vertex_normal_fig = SR.meshviz(bunny, color=:cyan)
-	SR.viz_field!(bunny, bunny.vertex_normals, field_type=:vertex, lengthscale=0.01)
-	SR.viz_field!(bunny, frames[:,:,1], field_type=:vertex,color=:lime, lengthscale=0.1)
-	SR.viz_field!(bunny, frames[:,:,2], field_type=:vertex, color=:lime, lengthscale=0.1)
-	vertex_normal_fig
+	λ_decomposed, ϕ_decomposed = SR.get_spectrum(bunny, k=20)
+	decomposed_V = SR.spectral_decomposition(bunny, ϕ_decomposed)
+	decomposed_bunny = SR.Mesh(decomposed_V', bunny.F)
+	decomposed_mesh_fig = SR.meshviz(decomposed_bunny, color=bunny_heat)
+end
+  ╠═╡ =#
+
+# ╔═╡ 6e463ada-6e79-4f6a-87ab-57823eacff74
+md"""
+Smooth Spectral Decomposition
+"""
+
+# ╔═╡ cd6a2b39-efe3-4503-8447-325633f7099b
+begin
+	smooth_V = SR.smooth_spectral_decomposition(bunny, 500, ϕ)
+	smooth_bunny = SR.Mesh(smooth_V', bunny.F)
+	smooth_mesh_fig = SR.meshviz(smooth_bunny, color=heat_by_spectrum)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1923,6 +1959,10 @@ version = "3.5.0+0"
 # ╟─46ad806d-ce7c-4f25-82d4-b26254365977
 # ╠═98075375-e45e-4c2f-9097-a924ae266948
 # ╟─6f6fc384-20a3-4eab-9990-5197611a43c5
-# ╠═8bf59e28-6b67-45af-ad3d-60cb625868e3
+# ╠═33ef86ad-c676-4def-a65a-778f4959b6e6
+# ╟─abfa93ea-e45a-4a51-8350-7aaa74a9f1ee
+# ╠═139bbeae-a6af-4b58-b01e-9ce2fee3dc8a
+# ╟─6e463ada-6e79-4f6a-87ab-57823eacff74
+# ╠═cd6a2b39-efe3-4503-8447-325633f7099b
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
