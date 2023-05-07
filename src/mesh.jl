@@ -23,6 +23,20 @@ function Mesh(V,F,N)
 end
 Mesh(V, F) = Mesh(V, F, normals(V,F))
 
+function get_in_sphere(mesh::Mesh, point, radius)
+    V = mesh.V
+    F = mesh.F
+    center = V[:,point]
+    dist = vec(norm(V .- center, dims=1))
+    V_sampled = dist.<radius
+    ind = findall(<(radius), dist)
+    i = F[1,:] .∈ Ref(ind)
+    j = F[2,:] .∈ Ref(ind)
+    k = F[3,:] .∈ Ref(ind)
+    F_sampled = i .& j .& k
+    V_sampled, F_sampled
+end
+
 
 function spectral_decomposition(mesh::Mesh, ϕ)
     c = ϕ'*(mesh.vertex_area .* mesh.V')
