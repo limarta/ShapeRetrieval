@@ -16,6 +16,7 @@ include("geom.jl")
 include("heat.jl")
 include("diffusion/diffusion.jl")
 include("utils.jl")
+include("sampler/sampler.jl")
 include("viz.jl")
 
 end # module ShapeRetrieval
