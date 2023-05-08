@@ -41,11 +41,12 @@ function viz_grid(V,F, data; kwargs...)
     #     n -= 1
     #     m = trunc(Int, N/n)
     # end
-    fig = Figure(resolution=(900,200))
+    fig = Figure(figure_padding=0.25, resolution=(1000,200))
     for i=1:N
-        ax = Axis3(fig[1,i], aspect=:data, elevation = 0.0, azimuth = -π/2)
+        ax = Axis3(fig[1,i],  aspect=:data, elevation = 0.0, azimuth = -π/2)
         hidedecorations!(ax)
-        mesh!(ax, V', F'; kwargs...)
+        hidespines!(ax)
+        mesh!(ax, V', F'; color=data[:,i], kwargs...)
     end
     fig
 end

@@ -30,3 +30,11 @@ function get_spectrum(mesh::Mesh; k=200)
     L = mesh.cot_laplacian ./ mesh.vertex_area
     λ, ϕ = eigs(L, nev=k, sigma=1e-8)
 end
+
+function decompose_feature_by_spectrum(mesh::Mesh, λ, ϕ, f)
+    c = vec(ϕ'*(mesh.vertex_area .* f))
+    # println("ϕ " , size(ϕ))
+    # println("c: ", size(c))
+    real.(ϕ .* c')
+    # abs.(ϕ .* c')
+end

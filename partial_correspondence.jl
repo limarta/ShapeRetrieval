@@ -49,16 +49,17 @@ SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 begin
 	bunny = SR.load_obj("./meshes/bunny.obj")
 	init_heat = zeros(bunny.nv)
-	init_heat[1] = 1
+	init_heat[700] = 1
 	λ, ϕ = SR.get_spectrum(bunny)
-	@time feature_map = SR.heat_diffusion(λ,ϕ,bunny.vertex_area, init_heat, 0.001)
+	@time feature_map = SR.heat_diffusion(λ,ϕ,bunny.vertex_area, init_heat, 0.01)
 	bunny_fig = SR.meshviz(bunny, color=feature_map)
 	bunny_fig
 end
 
 # ╔═╡ b1b9376f-746e-47f1-ac7c-4c748c7f1d7c
 begin
-	SR.viz_grid(bunny.V, bunny.F, rand(bunny.nv, 4))
+	spectra = SR.decompose_feature_by_spectrum(bunny, λ, ϕ, feature_map)
+	SR.viz_grid(bunny.V, bunny.F, spectra[:,1:4])
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
