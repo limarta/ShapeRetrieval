@@ -4,31 +4,31 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ f5c7e762-9b5f-427b-a6e8-63efac459a35
+# ╔═╡ e796b14c-6be6-47df-91dc-1e6c648bb1b3
 using WGLMakie
 
-# ╔═╡ b2504ee4-fcfd-47ff-892b-d73ba20428ea
+# ╔═╡ 7d89f729-5661-4c33-b057-2c8cc2aa8abf
 using Arpack
 
-# ╔═╡ 03057105-fa63-4143-8316-09cbb290e790
+# ╔═╡ b9873e7e-53ba-4f22-903e-2674682b71c8
 using LinearAlgebra
 
-# ╔═╡ 47580825-37ab-4b34-80c4-5e7425eeeae6
+# ╔═╡ eac1a230-0c60-4807-80b6-1a7c4b828824
 using SparseArrays
 
-# ╔═╡ d107b69a-99c1-403a-ac42-92ecc0f524ec
+# ╔═╡ 7b5c8e18-1e09-41ef-a3c1-d89a56951f41
 using Flux
 
-# ╔═╡ e41efaf3-b193-451f-893c-7d096c28a66a
+# ╔═╡ 22bf0d9a-edc9-11ed-0980-c95c1edae6a7
 Threads.nthreads()
 
-# ╔═╡ d095560b-6169-4d1c-b600-bd6c437bbc73
+# ╔═╡ 918809d8-31b1-457d-89a5-a32d32b57531
 WGLMakie.activate!()
 
-# ╔═╡ 7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
+# ╔═╡ c26e6850-e977-4bef-b8f1-dd1ebaa48ae5
 Makie.inline!(true)
 
-# ╔═╡ df42d23d-4bd9-48bc-a744-585ebc45b2f4
+# ╔═╡ 3305bd6a-cd5a-4726-abf8-01a11968ceef
 function __ingredients(path::String)
 	# this is from the Julia source code (evalfile in base/loading.jl)
 	# but with the modification that it returns the module instead of the last object
@@ -42,62 +42,23 @@ function __ingredients(path::String)
 	m
 end
 
-# ╔═╡ 61dca968-baa2-4b37-aa7e-b251014121bf
+# ╔═╡ 4d8e11d8-70a1-453e-8306-6e7f85f23300
 SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
-# ╔═╡ e3f1500b-017d-4d93-ade5-ad025626cf1c
-md"""
-##### Heat Diffusion by Iteration
-"""
-
-# ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
+# ╔═╡ 61caa613-e4da-411f-959a-af28983b8f23
 begin
-	bunny = SR.load_obj("./meshes/dragon.obj")
-	bunny = SR.normalize_mesh(bunny)
-	A = SR.vertex_area(bunny)
-	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
-	heat_signal = zeros(bunny.nv)
-	heat_signal[[1, 2]] .= 1.0
-	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=10)
-	heat_viz_fig = SR.meshviz(bunny, color=bunny_heat)
-	heat_viz_fig
+	bunny = SR.load_obj("./meshes/bunny.obj")
+	init_heat = zeros(bunny.nv)
+	init_heat[1] = 1
+	λ, ϕ = SR.get_spectrum(bunny)
+	@time feature_map = SR.heat_diffusion(λ,ϕ,bunny.vertex_area, init_heat, 0.001)
+	bunny_fig = SR.meshviz(bunny, color=feature_map)
+	bunny_fig
 end
 
-# ╔═╡ d6faf275-8cb4-4140-9d27-81e138f504a5
-md"""
-##### Heat Iteration with Spectrum
-"""
-
-# ╔═╡ f4f66184-bd23-4477-859f-9c1629b5abab
-md"""
-##### Vectorizing Heat Diffusion
-"""
-
-# ╔═╡ 46ad806d-ce7c-4f25-82d4-b26254365977
-md"""
-###### Vertex Normals and Tangent Plane
-"""
-
-# ╔═╡ 6f6fc384-20a3-4eab-9990-5197611a43c5
-md"""
-##### Visualizing Vertex-Based Gradient Field
-"""
-
-# ╔═╡ abfa93ea-e45a-4a51-8350-7aaa74a9f1ee
-md"""
-Decomposed Mesh
-"""
-
-# ╔═╡ 6e463ada-6e79-4f6a-87ab-57823eacff74
-md"""
-Smooth Spectral Decomposition
-"""
-
-# ╔═╡ b75a7ff6-3c4b-4f1c-8c54-cf7cad1795c8
+# ╔═╡ b1b9376f-746e-47f1-ac7c-4c748c7f1d7c
 begin
-	V_sampled, F_sampled = SR.get_in_sphere(bunny, 300, 0.3)
-	@time bunny_sampled = SR.relabel_mesh_from_mask(bunny, V_sampled, F_sampled)
-	sampled_mesh_fig = SR.meshviz(bunny_sampled)
+	SR.viz_grid(bunny.V, bunny.F, rand(bunny.nv, 4))
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1301,9 +1262,9 @@ version = "0.1.2"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
-git-tree-sha1 = "2e47054ffe7d0a8872e977c0d09eb4b3d162ebde"
+git-tree-sha1 = "d0984cc886c48e5a165705ce65236dc2ec467b91"
 uuid = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
-version = "1.0.2"
+version = "1.1.0"
 
 [[deps.Preferences]]
 deps = ["TOML"]
@@ -1556,9 +1517,9 @@ version = "0.1.1"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "StaticArraysCore", "Statistics"]
-git-tree-sha1 = "fd9a77cfd87116a27b2121c1988045f428b35a36"
+git-tree-sha1 = "c262c8e978048c2b095be1672c9bee55b4619521"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.5.22"
+version = "1.5.24"
 
 [[deps.StaticArraysCore]]
 git-tree-sha1 = "6b7ba252635a5eff6a0b0664a41ee140a1c9e72a"
@@ -1891,29 +1852,17 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═e41efaf3-b193-451f-893c-7d096c28a66a
-# ╠═f5c7e762-9b5f-427b-a6e8-63efac459a35
-# ╠═b2504ee4-fcfd-47ff-892b-d73ba20428ea
-# ╠═03057105-fa63-4143-8316-09cbb290e790
-# ╠═47580825-37ab-4b34-80c4-5e7425eeeae6
-# ╠═d107b69a-99c1-403a-ac42-92ecc0f524ec
-# ╠═d095560b-6169-4d1c-b600-bd6c437bbc73
-# ╠═7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
-# ╟─df42d23d-4bd9-48bc-a744-585ebc45b2f4
-# ╠═61dca968-baa2-4b37-aa7e-b251014121bf
-# ╟─e3f1500b-017d-4d93-ade5-ad025626cf1c
-# ╠═530964ef-78f7-4722-955b-377ae0a2a4b8
-# ╟─d6faf275-8cb4-4140-9d27-81e138f504a5
-# ╠═bf4adc3c-7c8b-4099-affc-0a264fb1d886
-# ╟─f4f66184-bd23-4477-859f-9c1629b5abab
-# ╟─46ad806d-ce7c-4f25-82d4-b26254365977
-# ╠═98075375-e45e-4c2f-9097-a924ae266948
-# ╟─6f6fc384-20a3-4eab-9990-5197611a43c5
-# ╠═33ef86ad-c676-4def-a65a-778f4959b6e6
-# ╟─abfa93ea-e45a-4a51-8350-7aaa74a9f1ee
-# ╠═139bbeae-a6af-4b58-b01e-9ce2fee3dc8a
-# ╟─6e463ada-6e79-4f6a-87ab-57823eacff74
-# ╠═cd6a2b39-efe3-4503-8447-325633f7099b
-# ╠═b75a7ff6-3c4b-4f1c-8c54-cf7cad1795c8
+# ╠═22bf0d9a-edc9-11ed-0980-c95c1edae6a7
+# ╠═e796b14c-6be6-47df-91dc-1e6c648bb1b3
+# ╠═7d89f729-5661-4c33-b057-2c8cc2aa8abf
+# ╠═b9873e7e-53ba-4f22-903e-2674682b71c8
+# ╠═eac1a230-0c60-4807-80b6-1a7c4b828824
+# ╠═7b5c8e18-1e09-41ef-a3c1-d89a56951f41
+# ╠═918809d8-31b1-457d-89a5-a32d32b57531
+# ╠═c26e6850-e977-4bef-b8f1-dd1ebaa48ae5
+# ╟─3305bd6a-cd5a-4726-abf8-01a11968ceef
+# ╠═4d8e11d8-70a1-453e-8306-6e7f85f23300
+# ╠═61caa613-e4da-411f-959a-af28983b8f23
+# ╠═b1b9376f-746e-47f1-ac7c-4c748c7f1d7c
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

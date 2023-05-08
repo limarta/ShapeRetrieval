@@ -30,3 +30,22 @@ function viz_field!(mesh::Mesh,field=nothing, field_type=:face; kwargs...)
     end
     viz_field!(base, field; kwargs...)
 end
+
+function viz_grid(V,F, data; kwargs...)
+    # data - |V|×N
+
+    N = size(data)[2]
+    # n = ceil(Int, sqrt(N))
+    # m = trunc(Int, N/n)
+    # while n * m != N
+    #     n -= 1
+    #     m = trunc(Int, N/n)
+    # end
+    fig = Figure(resolution=(900,200))
+    for i=1:N
+        ax = Axis3(fig[1,i], aspect=:data, elevation = 0.0, azimuth = -π/2)
+        hidedecorations!(ax)
+        mesh!(ax, V', F'; kwargs...)
+    end
+    fig
+end
