@@ -72,9 +72,11 @@ Learned Time Diffusion Layer - Implicit Mode
 """
 
 # ╔═╡ 8d10f5c8-48e2-48c0-b754-b5a985c7300f
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	function diffusion_loss(model, x, L, A, y) 
-	    norm(model(x,L, A) - y)
+	    norm(model(x, L, A) - y)
 	end
 	heat_init = zeros(bunny.nv,3)
 	heat_init[1,1] = 1.0 #  can be|V|×|C| input
@@ -82,15 +84,15 @@ let
 	heat_init[140,3] = 1.0; heat_init[300,3] = 1.0
 	
 	L, A = SR.get_diffusion_inputs(bunny, :implicit)
-	m = SR.LearnedTimeDiffusionBlock(3, :implicit)
+	m = SR.LearnedTimeDiffusionBlock(3)
 
 	opt_state = Flux.setup(Adam(), m)
 	y_true = m(heat_init, L, A)
 	println("t_true: ", m.diffusion_time)
-	m = SR.LearnedTimeDiffusionBlock(3, :implicit)
+	m = SR.LearnedTimeDiffusionBlock(3)
 	println("t_start: ", m.diffusion_time)
 	println("start cost ", diffusion_loss(m, heat_init, L, A, y_true))
-	@time for i=1:200
+	@time for i=1:750
 	    grad = gradient(diffusion_loss, m, heat_init, L, A, y_true)
 	    Flux.update!(opt_state, m, grad[1])
 	end
@@ -100,6 +102,7 @@ let
 	heat_viz = [y_true predicted_heat]
 	SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))
 end
+  ╠═╡ =#
 
 # ╔═╡ 572a9dbe-70c6-4142-b43f-cc26cd147b9f
 md"""
@@ -107,11 +110,34 @@ Learned Time Diffusion Layer - Spectral mode
 """
 
 # ╔═╡ 0ea4d2d2-c3d8-4f38-a60c-298924a71840
-begin
-	println(heat_init)
-	ltdb = SR.LearnedTimeDiffusionBlock(2, :spectral)
-	x_diffuse_example = ltdb(heat_init, λ, ϕ, A)
-	heat_viz_fig = SR.meshviz(bunny, color=x_diffuse_example[:,1])
+let
+	function diffusion_loss(model, x, ϕ, λ, A, y) 
+	    norm(model(x,ϕ,λ,A) - y)
+	end
+	heat_init = zeros(bunny.nv,3)
+	heat_init[1,1] = 1.0 #  can be|V|×|C| input
+	heat_init[200,2] = 1.0
+	heat_init[140,3] = 1.0; heat_init[300,3] = 1.0
+	
+	λ,ϕ,A = SR.get_diffusion_inputs(bunny, :spectral)
+	m = SR.LearnedTimeDiffusionBlock(3)
+	y_true = m(heat_init, λ,ϕ, A)
+	println("t_true: ", m.diffusion_time)
+	m = SR.LearnedTimeDiffusionBlock(3)
+	println("t_start: ", m.diffusion_time)
+	println("start cost ", diffusion_loss(m, heat_init, λ, ϕ, A, y_true))
+	
+	opt_state = Flux.setup(Adam(), m)
+	@time for i=1:750
+	    grad = gradient(diffusion_loss, m, heat_init, λ, ϕ, A, y_true)
+		# print(grad[1])
+	    Flux.update!(opt_state, m, grad[1])
+	end
+	println("final cost : ",diffusion_loss(m,heat_init, λ, ϕ, A, y_true))
+	println("t_final: ", m.diffusion_time)
+	predicted_heat = m(heat_init, λ, ϕ, A)
+	heat_viz = [y_true predicted_heat]
+	SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))
 end
 
 # ╔═╡ 198e34a6-37ef-4046-9f8e-3604be2c15eb
