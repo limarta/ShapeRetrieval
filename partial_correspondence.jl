@@ -48,18 +48,40 @@ SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 # ╔═╡ 61caa613-e4da-411f-959a-af28983b8f23
 begin
 	bunny = SR.load_obj("./meshes/bunny.obj")
+	bunny = SR.normalize_mesh(bunny)
 	init_heat = zeros(bunny.nv)
-	init_heat[700] = 1
+	p = 10
+	init_heat[p] = 1
 	λ, ϕ = SR.get_spectrum(bunny)
-	@time feature_map = SR.heat_diffusion(λ,ϕ,bunny.vertex_area, init_heat, 0.01)
+	@time feature_map = SR.heat_diffusion(λ,ϕ,bunny.vertex_area, init_heat, 0.1)
 	bunny_fig = SR.meshviz(bunny, color=feature_map)
 	bunny_fig
 end
 
 # ╔═╡ b1b9376f-746e-47f1-ac7c-4c748c7f1d7c
 begin
+	K = 10
 	spectra = SR.decompose_feature_by_spectrum(bunny, λ, ϕ, feature_map)
-	SR.viz_grid(bunny.V, bunny.F, spectra[:,1:4])
+	fig = SR.viz_grid(bunny.V, bunny.F, spectra[:,1:K])
+	fig
+end
+
+# ╔═╡ bf7fafdc-a62e-46fe-860d-a07b0274be38
+begin
+	V_sampled, F_sampled =  SR.get_in_sphere(bunny, p, 0.4)
+	obs, relabels = SR.relabel_mesh_from_mask(bunny, V_sampled, F_sampled)
+	init_heat_obs = zeros(obs.nv)
+	init_heat_obs[relabels[p]] = 1
+	feature_obs = SR.heat_diffusion(obs, init_heat_obs, 0.1)
+	obs_fig = SR.meshviz(obs, color=feature_obs)
+end
+
+# ╔═╡ c7ff00f3-9a39-4201-9a65-a0984017eebf
+begin
+	λ_obs, ϕ_obs = SR.get_spectrum(obs)
+	spectra_obs = SR.decompose_feature_by_spectrum(obs, λ_obs, ϕ_obs, feature_obs)
+	fig_new = SR.viz_grid(obs.V, obs.F, spectra_obs[:,1:K])
+	fig_new
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1865,5 +1887,7 @@ version = "3.5.0+0"
 # ╠═4d8e11d8-70a1-453e-8306-6e7f85f23300
 # ╠═61caa613-e4da-411f-959a-af28983b8f23
 # ╠═b1b9376f-746e-47f1-ac7c-4c748c7f1d7c
+# ╠═bf7fafdc-a62e-46fe-860d-a07b0274be38
+# ╠═c7ff00f3-9a39-4201-9a65-a0984017eebf
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

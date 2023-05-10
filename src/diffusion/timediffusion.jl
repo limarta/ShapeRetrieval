@@ -18,19 +18,22 @@ end
 Flux.@functor LearnedTimeDiffusionBlock
 Flux.trainable(m::LearnedTimeDiffusionBlock) = (diffusion_time = m.diffusion_time,)
 
-function (model::LearnedTimeDiffusionBlock)(x, L, M, A::Vector{Float64})
+function (model::LearnedTimeDiffusionBlock)(x, L, A::Vector{Float64})
     # LM - diffusion operator M+dt*L
     # A - vertex areas
 
-    dt = max(model.diffusion_time[1],0)
-    # spdiagm(A)
-    D = Matrix(M + dt * L) # Need to make dense :/
-    F = cholesky(D)
-    heat = x
-    for t=1:4
-        heat = F \ (heat.* A)
+    M = diagm(A)
+
+    T = length(model.diffusion_time)
+    heat_buf = Zygote.Buffer(x, size(x)[1], T)
+    for t=1:size(model.diffusion_time)[1]
+        dt = max(model.diffusion_time[t],0)
+        F = M + dt * L # Need to make dense :/
+        # F = cholesky(D)
+        heat = F \ (x[:,t].* A)
+        heat_buf[:,t] = heat
     end
-    heat
+    copy(heat_buf)
 end
 
 function (model::LearnedTimeDiffusionBlock)(x, λ::Vector{ComplexF64}, ϕ::Matrix{ComplexF64}, A::Vector{Float64})

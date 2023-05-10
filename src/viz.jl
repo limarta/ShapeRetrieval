@@ -1,10 +1,17 @@
 using WGLMakie
 
+wgl_coords(V) = [V[:,1] -V[:,3]  V[:,2]]
 function meshviz(V,F; args...)
     fig = Figure(resolution = (900,900))
     ax = Axis3(fig[1,1], aspect=:data, elevation = 0.0, azimuth = -π/2)
-    mesh!(ax, V', F'; args...)
-    fig
+    V_new = wgl_coords(V')
+    mesh!(ax, V_new, F'; args...)
+    # fig,lscene,z = mesh(V', F'; args...)
+    # cam = cameracontrols(lscene)
+    # update_cam!(lscene.scene, (1,0.4,0.0), (0.0, 0.0, 0.0))
+    # rotate_cam!(lscene.scene, 0, π/4, -π)
+    # fig
+    fig 
 end
 meshviz(mesh::Mesh; args...)  = meshviz(mesh.V, mesh.F; args...)
 
@@ -35,18 +42,35 @@ function viz_grid(V,F, data; kwargs...)
     # data - |V|×N
 
     N = size(data)[2]
-    # n = ceil(Int, sqrt(N))
-    # m = trunc(Int, N/n)
-    # while n * m != N
-    #     n -= 1
-    #     m = trunc(Int, N/n)
-    # end
-    fig = Figure(figure_padding=0.25, resolution=(1000,200))
-    for i=1:N
-        ax = Axis3(fig[1,i],  aspect=:data, elevation = 0.0, azimuth = -π/2)
-        hidedecorations!(ax)
-        hidespines!(ax)
-        mesh!(ax, V', F'; color=data[:,i], kwargs...)
+    if N > 5
+        if haskey(kwargs, :dims)
+            n = kwargs[:dims][1]
+            m = kwargs[:dims][2]
+        else
+            n = ceil(Int, sqrt(N))
+            m = trunc(Int, N/n)
+            while n * m != N
+                n -= 1
+                m = trunc(Int, N/n)
+            end
+        end
+        fig = Figure(resolution=(1000,200*m))
+        for i=1:n
+            for j=1:m
+                ax = Axis3(fig[i,j],  aspect=:data, elevation = 0.0, azimuth = -π/2)
+                hidedecorations!(ax)
+                hidespines!(ax)
+                v = mesh!(ax, wgl_coords(V'), F'; color=data[:,(i-1)*m+j], kwargs...)
+            end
+        end
+    else
+        fig = Figure(resolution=(1000,200))
+        for i=1:N
+            ax = Axis3(fig[1,i],  aspect=:data, elevation = 0.0, azimuth = -π/2)
+            hidedecorations!(ax)
+            hidespines!(ax)
+            v = mesh!(ax, wgl_coords(V'), F'; color=data[:,i], kwargs...)
+        end
     end
     fig
 end

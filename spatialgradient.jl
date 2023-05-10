@@ -7,6 +7,9 @@ using InteractiveUtils
 # ╔═╡ e442d490-e277-4617-b437-82654d05c3a5
 using LinearAlgebra
 
+# ╔═╡ 90be3ca4-8aa2-49cc-86b6-2b371ab16f3d
+using BenchmarkTools
+
 # ╔═╡ d2ffa34a-4dc6-4e8e-b04a-a486cad5783a
 using WGLMakie
 
@@ -18,6 +21,9 @@ using SparseArrays
 
 # ╔═╡ f8b2155c-73c6-4689-80e6-e8bc5a6dd3c9
 using Flux
+
+# ╔═╡ 4f08a60f-7f0b-44c5-891f-aabde7323b48
+using Zygote
 
 # ╔═╡ 65fefab0-ea3e-11ed-2f6f-175b14acddf4
 Threads.nthreads()
@@ -55,28 +61,54 @@ begin
 	bunny = SR.load_obj("./meshes/gourd.obj")
 	println("Vertices $(bunny.nv) Faces $(bunny.nf)")
 	L, M, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
+	d = count(x->x != 0, bunny.cot_laplacian) / (bunny.nv ^2 )
+	println("Density: $(d)")
 	nothing
 end
 
 # ╔═╡ adf1619e-2381-499d-9af3-3398f126b709
 md"""
-Create Input Data
+Learned Time Diffusion Layer - Implicit Mode
 """
 
 # ╔═╡ 8d10f5c8-48e2-48c0-b754-b5a985c7300f
-begin
-	# heat_init = zeros(bunny.nv,2)
-	heat_init = zeros(bunny.nv,2)
+let
+	function diffusion_loss(model, x, L, A, y) 
+	    norm(model(x,L, A) - y)
+	end
+	heat_init = zeros(bunny.nv,3)
 	heat_init[1,1] = 1.0 #  can be|V|×|C| input
+	heat_init[200,2] = 1.0
+	heat_init[140,3] = 1.0; heat_init[300,3] = 1.0
+	
+	L, A = SR.get_diffusion_inputs(bunny, :implicit)
+	m = SR.LearnedTimeDiffusionBlock(3, :implicit)
+
+	opt_state = Flux.setup(Adam(), m)
+	y_true = m(heat_init, L, A)
+	println("t_true: ", m.diffusion_time)
+	m = SR.LearnedTimeDiffusionBlock(3, :implicit)
+	println("t_start: ", m.diffusion_time)
+	println("start cost ", diffusion_loss(m, heat_init, L, A, y_true))
+	@time for i=1:200
+	    grad = gradient(diffusion_loss, m, heat_init, L, A, y_true)
+	    Flux.update!(opt_state, m, grad[1])
+	end
+	println("final cost : ",diffusion_loss(m,heat_init, L, A, y_true))
+	println("t_final: ", m.diffusion_time)
+	predicted_heat = m(heat_init, L, A)
+	heat_viz = [y_true predicted_heat]
+	SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))
 end
 
 # ╔═╡ 572a9dbe-70c6-4142-b43f-cc26cd147b9f
 md"""
-Learned Time Diffusion Layer
+Learned Time Diffusion Layer - Spectral mode
 """
 
 # ╔═╡ 0ea4d2d2-c3d8-4f38-a60c-298924a71840
 begin
+	println(heat_init)
 	ltdb = SR.LearnedTimeDiffusionBlock(2, :spectral)
 	x_diffuse_example = ltdb(heat_init, λ, ϕ, A)
 	heat_viz_fig = SR.meshviz(bunny, color=x_diffuse_example[:,1])
@@ -121,15 +153,19 @@ end
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 Arpack = "~0.5.4"
+BenchmarkTools = "~1.3.2"
 Flux = "~0.13.15"
 WGLMakie = "~0.8.8"
+Zygote = "~0.6.60"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -138,7 +174,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0-rc3"
 manifest_format = "2.0"
-project_hash = "c73aa433aecf9fc715ddce01a5ee604cdc6f2ebf"
+project_hash = "dd6f5ce2e77a2c1a10de10e1be8e8265ea3a19fb"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -256,6 +292,12 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 git-tree-sha1 = "aebf55e6d7795e02ca500a689d326ac979aaf89e"
 uuid = "9718e550-a3fa-408a-8086-8db961cd8217"
 version = "0.1.1"
+
+[[deps.BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
+git-tree-sha1 = "d9a9701b899b30332bbcb3e1679c41cce81fb0e8"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "1.3.2"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "43b1a4a8f797c1cddadf60499a8a077d4af2cd2d"
@@ -1337,6 +1379,10 @@ version = "0.2.0"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
+[[deps.Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
+
 [[deps.ProgressLogging]]
 deps = ["Logging", "SHA", "UUIDs"]
 git-tree-sha1 = "80d919dee55b9c50e8d9e2da5eeafff3fe58b539"
@@ -1910,10 +1956,12 @@ version = "3.5.0+0"
 # ╔═╡ Cell order:
 # ╠═65fefab0-ea3e-11ed-2f6f-175b14acddf4
 # ╠═e442d490-e277-4617-b437-82654d05c3a5
+# ╠═90be3ca4-8aa2-49cc-86b6-2b371ab16f3d
 # ╠═d2ffa34a-4dc6-4e8e-b04a-a486cad5783a
 # ╠═2f9835a0-6410-44a4-905b-35117182d1b0
 # ╠═c5987585-5c37-471e-8d21-faf81f9eeca7
 # ╠═f8b2155c-73c6-4689-80e6-e8bc5a6dd3c9
+# ╠═4f08a60f-7f0b-44c5-891f-aabde7323b48
 # ╠═d55806e3-12b5-46d5-90d6-6342b89849a7
 # ╠═aecf9ac9-8435-445a-b985-a7704b0de05e
 # ╟─83bf7194-cc29-4fb5-8d0f-e38ae00dc93e

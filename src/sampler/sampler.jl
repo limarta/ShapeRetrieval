@@ -14,5 +14,5 @@ function relabel_mesh_from_mask(mesh::Mesh, V_mask, F_mask)
     relabels = zeros(Int, mesh.nv)
     relabels[old_ids] = 1:length(old_ids)
     F_new = replace(x -> relabels[x], F_new)
-    @time Mesh(V_new, F_new)
+    Mesh(V_new, F_new), relabels
 end

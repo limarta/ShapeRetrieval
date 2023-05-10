@@ -38,7 +38,7 @@ function get_diffusion_inputs(mesh, method::Symbol=:spectral)
         λ, ϕ =  get_spectrum(mesh)
         return λ, ϕ, A
     elseif method == :implicit
-        return mesh.cot_laplacian, spdiagm(mesh.vertex_area), mesh.vertex_area
+        return mesh.cot_laplacian, mesh.vertex_area
     end
 end
 
