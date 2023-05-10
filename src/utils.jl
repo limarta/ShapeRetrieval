@@ -109,3 +109,11 @@ function parse_face(line, tokens, materials_idx, faces_verts_idx, faces_normals_
         push!(faces_verts_idx, [face_verts[1], face_verts[i+1], face_verts[i+2]])
     end
 end
+
+function diffusion_explain(dnb::DiffusionNetBlock{Spectral}, x, λ, ϕ, A, ∇_x, ∇_y)
+    x_diffused = dnb.diffusion_block(x,λ, ϕ, A)
+    grad_x = ∇_x * x_diffused
+    grad_y = ∇_y * x_diffused
+    field = cat(grad_x, grad_y;dims=3)
+    x_diffused, field, dnb(x, λ, ϕ, A, ∇_x, ∇_y)
+end

@@ -25,6 +25,9 @@ using Flux
 # ╔═╡ b3a75283-4a12-4a5e-99d7-ebe5083bd323
 using Zygote
 
+# ╔═╡ 9118c95e-4a9e-4b2f-b60d-15855aeec0f7
+using NNlib
+
 # ╔═╡ 65fefab0-ea3e-11ed-2f6f-175b14acddf4
 Threads.nthreads()
 
@@ -58,7 +61,7 @@ Load Mesh and Precompute Operators
 
 # ╔═╡ 1ddba698-2cb2-4d34-ba78-3bfe74666992
 begin
-	bunny = SR.load_obj("./meshes/gourd.obj")
+	bunny = SR.load_obj("./meshes/bunny.obj")
 	bunny = SR.normalize_mesh(bunny)
 	println("Vertices $(bunny.nv) Faces $(bunny.nf)")
 	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
@@ -190,6 +193,17 @@ md"""
 Spatial Gradient Layer with Rotations
 """
 
+# ╔═╡ b8b7af63-1987-4908-8255-f45b2a1b668b
+md"""
+MLP
+"""
+
+# ╔═╡ 2950e891-3f70-4fcb-9de0-5de6716e1ff3
+# let
+# 	mlp = SR.MLP([2,2,])
+# 	# x_fake = rand(Float32, 2, 100)
+# end
+
 # ╔═╡ 8e80c28d-78d4-4d98-86e6-220e52cfbf9e
 # ╠═╡ disabled = true
 #=╠═╡
@@ -226,25 +240,22 @@ let
 
 	xyz = convert.(Float32,bunny.V)'
 	dnb = SR.DiffusionNetBlock(3,[2,], with_gradient_features=true)
-	y = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
-	println(dnb)
-	# y = copy(bunny.V)
-	# y .-= minimum.(eachrow(y))
-	# y ./= maximum.(eachrow(y))
-	# y = convert.(Float32, (y.-0.5).^2)
+	y = copy(bunny.V)
+	y .-= minimum.(eachrow(y))
+	y ./= maximum.(eachrow(y))
+	y = convert.(Float32, (y.-0.5))
 	
 	function diffusion_loss(model, x, λ, ϕ, A,∇_x, ∇_y, y)
 		y_pred = model(x, λ, ϕ, A, ∇_x, ∇_y)
 		norm(y - y_pred)
 	end
-	dnb = SR.DiffusionNetBlock(3,[2,], with_gradient_features=true)
+	dnb = SR.DiffusionNetBlock(3,[4,4], with_gradient_features=false)
 	opt_state = Flux.setup(Adam(), dnb)
 	println("init cost: ", diffusion_loss(dnb, xyz, λ,ϕ, A,∇_x, ∇_y, y))
-	println(dnb.mlp)
 	# @code_warntype dnb(xyz, λ,ϕ, A,∇_x, ∇_y)
-	@time for i=1:50000
+	@time for i=1:10
 	    grad = gradient(diffusion_loss, dnb, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
-		if i % 1000 == 0
+		if i % 10000 == 0
 			println(diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
 		end
 	    Flux.update!(opt_state, dnb, grad[1])
@@ -253,11 +264,14 @@ let
 	println("final cost : ",diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
 	
 	y_pred = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
-	print(dnb)
 	# fig = SR.meshviz(bunny, color=y_pred[3,:], shift_coordinates=true, resolution=(1500,1500))
-	fig = SR.viz_grid(bunny.V, bunny.F, [y' y_pred'], dims=(2,3))
-	fig
+	y_0, y_1, y_2 = SR.diffusion_explain(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y)
+	# fig = SR.viz_grid(bunny.V, bunny.F, [y' y_pred'], dims=(2,3), shift_coordinates=false)
+	println(size([y; y_0']))
+	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_0']', shift_coordinates=false, dims=(2,3))
+	# fig
 end
+
 
 # ╔═╡ 5aa34727-c41a-4533-8e9d-a186fba5a20f
 md"""
@@ -265,9 +279,33 @@ md"""
 """
 
 # ╔═╡ ceeafdb4-3474-487d-acd1-5a77c820e0a5
-begin
-	net = SR.DiffusionNet(3, 2, 3, 1)
-	net(fake_inputs, L, M, A, λ, ϕ, ∇_x, ∇_y)
+let
+	xyz = convert.(Float32,bunny.V)
+	y = copy(bunny.V)
+	y .-= minimum.(eachrow(y))
+	y ./= maximum.(eachrow(y))
+	y = convert.(Float32, (y.-0.5))
+	
+
+	# net(fake_inputs, λ, ϕ, A, ∇_x, ∇_y)
+	
+	function diffusion_loss(model, x, λ, ϕ, A,∇_x, ∇_y, y)
+		y_pred = model(x, λ, ϕ, A, ∇_x, ∇_y)
+		norm(y - y_pred)
+	end
+
+	net = SR.DiffusionNet(3, 3, 3, 2)
+	opt_state = Flux.setup(Adam(), net)
+	println("init cost: ", diffusion_loss(net, xyz, λ,ϕ, A,∇_x, ∇_y, y))
+	@time for i=1:20000
+	    grad = gradient(diffusion_loss, net, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
+		if i % 10000 == 0
+			println(diffusion_loss(net, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
+		end
+	    Flux.update!(opt_state, net, grad[1])
+	end
+	println("final cost : ",diffusion_loss(net, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
+	# y_pred = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
 end
 
 # ╔═╡ d5d91582-e4b0-4105-853d-6634edffb420
@@ -289,6 +327,7 @@ Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
@@ -297,6 +336,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 Arpack = "~0.5.4"
 BenchmarkTools = "~1.3.2"
 Flux = "~0.13.15"
+NNlib = "~0.8.20"
 WGLMakie = "~0.8.8"
 Zygote = "~0.6.60"
 """
@@ -307,7 +347,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0-rc3"
 manifest_format = "2.0"
-project_hash = "dd6f5ce2e77a2c1a10de10e1be8e8265ea3a19fb"
+project_hash = "96c371838a1f24ab7f55c306af4ffea345061c9e"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -2095,6 +2135,7 @@ version = "3.5.0+0"
 # ╠═c5987585-5c37-471e-8d21-faf81f9eeca7
 # ╠═f8b2155c-73c6-4689-80e6-e8bc5a6dd3c9
 # ╠═b3a75283-4a12-4a5e-99d7-ebe5083bd323
+# ╠═9118c95e-4a9e-4b2f-b60d-15855aeec0f7
 # ╠═d55806e3-12b5-46d5-90d6-6342b89849a7
 # ╠═aecf9ac9-8435-445a-b985-a7704b0de05e
 # ╟─83bf7194-cc29-4fb5-8d0f-e38ae00dc93e
@@ -2108,6 +2149,8 @@ version = "3.5.0+0"
 # ╟─a5486cfa-1c7d-451b-b142-89728f79eb94
 # ╟─d1eb38e1-122e-47d5-8fbd-cc56d76144ca
 # ╟─bba65f1c-8ad5-438d-b8ea-ddd460d178d5
+# ╟─b8b7af63-1987-4908-8255-f45b2a1b668b
+# ╟─2950e891-3f70-4fcb-9de0-5de6716e1ff3
 # ╟─8e80c28d-78d4-4d98-86e6-220e52cfbf9e
 # ╟─198e34a6-37ef-4046-9f8e-3604be2c15eb
 # ╠═429b55d0-bc43-40af-86c6-acd31c627373

@@ -75,7 +75,7 @@ function viz_grid(V,F, data; shift_coordinates=true, kwargs...)
             end
         end
     else
-        fig = Figure(resolution=(1000,200))
+        fig = Figure(resolution=(1000,200*N))
         for i=1:N
             ax = Axis3(fig[1,i],  aspect=:data, elevation = 0.0, azimuth = -π/2)
             hidedecorations!(ax)
