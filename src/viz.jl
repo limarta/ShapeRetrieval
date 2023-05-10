@@ -1,27 +1,30 @@
 using WGLMakie
 
-wgl_coords(V) = [V[:,1] -V[:,3]  V[:,2]]
-function meshviz(V,F; args...)
-    fig = Figure(resolution = (900,900))
+wgl_coords(V) = [V[1,:] -V[3,:]  V[2,:]]'
+
+function meshviz(V,F; resolution=(900,900), shift_coordinates=true, args...)
+    fig = Figure(resolution = resolution)
     ax = Axis3(fig[1,1], aspect=:data, elevation = 0.0, azimuth = -π/2)
-    V_new = wgl_coords(V')
-    mesh!(ax, V_new, F'; args...)
-    # fig,lscene,z = mesh(V', F'; args...)
-    # cam = cameracontrols(lscene)
-    # update_cam!(lscene.scene, (1,0.4,0.0), (0.0, 0.0, 0.0))
-    # rotate_cam!(lscene.scene, 0, π/4, -π)
-    # fig
+    if shift_coordinates
+        V_new = wgl_coords(V)
+    else
+        V_new = V
+    end
+    println(size(V_new))
+    mesh!(ax, V_new', F'; args...)
     fig 
 end
 meshviz(mesh::Mesh; args...)  = meshviz(mesh.V, mesh.F; args...)
 
-function viz_field!(base, field;  kwargs...)
+function viz_field!(base, field;  shift_coordinates=true, kwargs...)
     arrow_args = Dict{Symbol, Any}()
     arrow_args[:linewidth] = get(kwargs, :linewidth, 0.01)
     arrow_args[:arrowsize] = get(kwargs, :arrowsize, 0.01)
     arrow_args[:lengthscale] = get(kwargs, :lengthscale, 0.01)
     arrow_args[:arrowcolor] = get(kwargs, :color, :red) 
     arrow_args[:linecolor] = get(kwargs, :color, :red) 
+    if shift_coordinates
+    end
 
     arrows!(base[1,:],base[2,:],base[3,:], field[1,:], field[2,:], field[3,:]; arrow_args...)
 end
@@ -38,8 +41,16 @@ function viz_field!(mesh::Mesh,field=nothing, field_type=:face; kwargs...)
     viz_field!(base, field; kwargs...)
 end
 
-function viz_grid(V,F, data; kwargs...)
+function viz_point!(mesh::Mesh, id::Int; kwargs...)
+    xyz = mesh.V[:,id]
+    scatter!(xyz...,; kwargs...)
+end
+
+function viz_grid(V,F, data; shift_coordinates=true, kwargs...)
     # data - |V|×N
+    if shift_coordinates
+        V = wgl_coords(V)
+    end
 
     N = size(data)[2]
     if N > 5
@@ -60,7 +71,7 @@ function viz_grid(V,F, data; kwargs...)
                 ax = Axis3(fig[i,j],  aspect=:data, elevation = 0.0, azimuth = -π/2)
                 hidedecorations!(ax)
                 hidespines!(ax)
-                v = mesh!(ax, wgl_coords(V'), F'; color=data[:,(i-1)*m+j], kwargs...)
+                v = mesh!(ax, V', F'; color=data[:,(i-1)*m+j], kwargs...)
             end
         end
     else
@@ -69,7 +80,7 @@ function viz_grid(V,F, data; kwargs...)
             ax = Axis3(fig[1,i],  aspect=:data, elevation = 0.0, azimuth = -π/2)
             hidedecorations!(ax)
             hidespines!(ax)
-            v = mesh!(ax, wgl_coords(V'), F'; color=data[:,i], kwargs...)
+            v = mesh!(ax, V', F'; color=data[:,i], kwargs...)
         end
     end
     fig

@@ -1,4 +1,5 @@
 include("timediffusion.jl")
+include("spatialgradient.jl")
 include("minimlp.jl")
 include("diffusionblock.jl")
 

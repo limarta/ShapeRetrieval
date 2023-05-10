@@ -22,7 +22,7 @@ using SparseArrays
 # ╔═╡ f8b2155c-73c6-4689-80e6-e8bc5a6dd3c9
 using Flux
 
-# ╔═╡ 4f08a60f-7f0b-44c5-891f-aabde7323b48
+# ╔═╡ b3a75283-4a12-4a5e-99d7-ebe5083bd323
 using Zygote
 
 # ╔═╡ 65fefab0-ea3e-11ed-2f6f-175b14acddf4
@@ -59,8 +59,9 @@ Load Mesh and Precompute Operators
 # ╔═╡ 1ddba698-2cb2-4d34-ba78-3bfe74666992
 begin
 	bunny = SR.load_obj("./meshes/gourd.obj")
+	bunny = SR.normalize_mesh(bunny)
 	println("Vertices $(bunny.nv) Faces $(bunny.nf)")
-	L, M, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
+	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
 	d = count(x->x != 0, bunny.cot_laplacian) / (bunny.nv ^2 )
 	println("Density: $(d)")
 	nothing
@@ -83,7 +84,7 @@ let
 	heat_init[200,2] = 1.0
 	heat_init[140,3] = 1.0; heat_init[300,3] = 1.0
 	
-	L, A = SR.get_diffusion_inputs(bunny, :implicit)
+	L, A = SR.get_diffusion_inputs(bunny, SR.Implicit)
 	m = SR.LearnedTimeDiffusionBlock(3)
 
 	opt_state = Flux.setup(Adam(), m)
@@ -92,7 +93,10 @@ let
 	m = SR.LearnedTimeDiffusionBlock(3)
 	println("t_start: ", m.diffusion_time)
 	println("start cost ", diffusion_loss(m, heat_init, L, A, y_true))
-	@time for i=1:750
+	@time for i=1:40
+		if i%10==0
+			println(i)
+		end
 	    grad = gradient(diffusion_loss, m, heat_init, L, A, y_true)
 	    Flux.update!(opt_state, m, grad[1])
 	end
@@ -110,16 +114,18 @@ Learned Time Diffusion Layer - Spectral mode
 """
 
 # ╔═╡ 0ea4d2d2-c3d8-4f38-a60c-298924a71840
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	function diffusion_loss(model, x, ϕ, λ, A, y) 
 	    norm(model(x,ϕ,λ,A) - y)
 	end
-	heat_init = zeros(bunny.nv,3)
+	heat_init = zeros(Float32, bunny.nv,3)
 	heat_init[1,1] = 1.0 #  can be|V|×|C| input
 	heat_init[200,2] = 1.0
 	heat_init[140,3] = 1.0; heat_init[300,3] = 1.0
 	
-	λ,ϕ,A = SR.get_diffusion_inputs(bunny, :spectral)
+	λ,ϕ,A = SR.get_diffusion_inputs(bunny, SR.Spectral)
 	m = SR.LearnedTimeDiffusionBlock(3)
 	y_true = m(heat_init, λ,ϕ, A)
 	println("t_true: ", m.diffusion_time)
@@ -139,17 +145,118 @@ let
 	heat_viz = [y_true predicted_heat]
 	SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))
 end
+  ╠═╡ =#
+
+# ╔═╡ a5486cfa-1c7d-451b-b142-89728f79eb94
+md"""
+Spatial Gradient Layer
+"""
+
+# ╔═╡ d1eb38e1-122e-47d5-8fbd-cc56d76144ca
+# ╠═╡ disabled = true
+#=╠═╡
+let
+	C_in = 3
+	function spatial_loss(m, grad_x, grad_y, y)
+		y_pred = m(grad_x, grad_y)
+		norm(y - y_pred)
+	end
+	sgb = SR.SpatialGradientBlock(false, C_in)
+	fake_x = rand(C_in,100)
+	fake_y = rand(C_in,100)
+	y_true = sgb(fake_x, fake_y)
+
+	println("A_true: ", sgb.A)
+
+	
+	opt_state = Flux.setup(Adam(), sgb)
+	sgb = SR.SpatialGradientBlock(false, C_in)
+	println("A_start: ", sgb.A)
+	println("init cost: ", spatial_loss(sgb, fake_x, fake_y, y_true))
+
+	@time for i=1:3000
+	    grad = gradient(spatial_loss, sgb, fake_x, fake_y, y_true)
+	    Flux.update!(opt_state, sgb, grad[1])
+	end
+	println("final cost : ",spatial_loss(sgb, fake_x, fake_y, y_true))
+	println("t_final: ", sgb.A)
+	# predicted_heat = m(heat_init, L, A)
+	# heat_viz = [y_true predicted_heat]
+end
+  ╠═╡ =#
+
+# ╔═╡ bba65f1c-8ad5-438d-b8ea-ddd460d178d5
+md"""
+Spatial Gradient Layer with Rotations
+"""
+
+# ╔═╡ 8e80c28d-78d4-4d98-86e6-220e52cfbf9e
+# ╠═╡ disabled = true
+#=╠═╡
+let
+	sgb = SR.SpatialGradientBlock(true, 3)
+	fake_x = rand(3,100)
+	fake_y = rand(3,100)
+	sgb(fake_x, fake_y)
+end
+  ╠═╡ =#
 
 # ╔═╡ 198e34a6-37ef-4046-9f8e-3604be2c15eb
 md"""
-Diffusion Block
+Diffusion Block with Rotation Spatial Gradients
 """
 
 # ╔═╡ 429b55d0-bc43-40af-86c6-acd31c627373
-begin
+# ╠═╡ disabled = true
+#=╠═╡
+let
 	dnb = SR.DiffusionNetBlock(3, [2,4], with_gradient_features=true)
 	fake_inputs = rand(Float32, bunny.nv,3)
-	dnb(fake_inputs, L, M, A, λ, ϕ, ∇_x, ∇_y)
+	dnb(fake_inputs, λ, ϕ,A, ∇_x, ∇_y)
+end
+  ╠═╡ =#
+
+# ╔═╡ 163c2624-cdcb-4627-8623-3163bd64fb27
+md"""
+Visualizing  Diffusion Block
+"""
+
+# ╔═╡ d0315bf8-fa34-4339-b25f-14f30f5dad58
+let
+
+	xyz = convert.(Float32,bunny.V)'
+	dnb = SR.DiffusionNetBlock(3,[2,], with_gradient_features=true)
+	y = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
+	println(dnb)
+	# y = copy(bunny.V)
+	# y .-= minimum.(eachrow(y))
+	# y ./= maximum.(eachrow(y))
+	# y = convert.(Float32, (y.-0.5).^2)
+	
+	function diffusion_loss(model, x, λ, ϕ, A,∇_x, ∇_y, y)
+		y_pred = model(x, λ, ϕ, A, ∇_x, ∇_y)
+		norm(y - y_pred)
+	end
+	dnb = SR.DiffusionNetBlock(3,[2,], with_gradient_features=true)
+	opt_state = Flux.setup(Adam(), dnb)
+	println("init cost: ", diffusion_loss(dnb, xyz, λ,ϕ, A,∇_x, ∇_y, y))
+	println(dnb.mlp)
+	# @code_warntype dnb(xyz, λ,ϕ, A,∇_x, ∇_y)
+	@time for i=1:50000
+	    grad = gradient(diffusion_loss, dnb, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
+		if i % 1000 == 0
+			println(diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
+		end
+	    Flux.update!(opt_state, dnb, grad[1])
+	end
+	
+	println("final cost : ",diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
+	
+	y_pred = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
+	print(dnb)
+	# fig = SR.meshviz(bunny, color=y_pred[3,:], shift_coordinates=true, resolution=(1500,1500))
+	fig = SR.viz_grid(bunny.V, bunny.F, [y' y_pred'], dims=(2,3))
+	fig
 end
 
 # ╔═╡ 5aa34727-c41a-4533-8e9d-a186fba5a20f
@@ -1987,7 +2094,7 @@ version = "3.5.0+0"
 # ╠═2f9835a0-6410-44a4-905b-35117182d1b0
 # ╠═c5987585-5c37-471e-8d21-faf81f9eeca7
 # ╠═f8b2155c-73c6-4689-80e6-e8bc5a6dd3c9
-# ╠═4f08a60f-7f0b-44c5-891f-aabde7323b48
+# ╠═b3a75283-4a12-4a5e-99d7-ebe5083bd323
 # ╠═d55806e3-12b5-46d5-90d6-6342b89849a7
 # ╠═aecf9ac9-8435-445a-b985-a7704b0de05e
 # ╟─83bf7194-cc29-4fb5-8d0f-e38ae00dc93e
@@ -1995,11 +2102,17 @@ version = "3.5.0+0"
 # ╟─ed426449-a9e4-468b-abe1-adf6b2e78f5a
 # ╠═1ddba698-2cb2-4d34-ba78-3bfe74666992
 # ╟─adf1619e-2381-499d-9af3-3398f126b709
-# ╠═8d10f5c8-48e2-48c0-b754-b5a985c7300f
+# ╟─8d10f5c8-48e2-48c0-b754-b5a985c7300f
 # ╟─572a9dbe-70c6-4142-b43f-cc26cd147b9f
-# ╠═0ea4d2d2-c3d8-4f38-a60c-298924a71840
+# ╟─0ea4d2d2-c3d8-4f38-a60c-298924a71840
+# ╟─a5486cfa-1c7d-451b-b142-89728f79eb94
+# ╟─d1eb38e1-122e-47d5-8fbd-cc56d76144ca
+# ╟─bba65f1c-8ad5-438d-b8ea-ddd460d178d5
+# ╟─8e80c28d-78d4-4d98-86e6-220e52cfbf9e
 # ╟─198e34a6-37ef-4046-9f8e-3604be2c15eb
 # ╠═429b55d0-bc43-40af-86c6-acd31c627373
+# ╟─163c2624-cdcb-4627-8623-3163bd64fb27
+# ╠═d0315bf8-fa34-4339-b25f-14f30f5dad58
 # ╟─5aa34727-c41a-4533-8e9d-a186fba5a20f
 # ╠═ceeafdb4-3474-487d-acd1-5a77c820e0a5
 # ╠═d5d91582-e4b0-4105-853d-6634edffb420

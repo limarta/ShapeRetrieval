@@ -27,17 +27,20 @@ function readoff(filename::String)
     end
 end
 
-function get_operators(mesh; k=200)
+function get_operators(mesh::Mesh; k=200)
     λ, ϕ = get_spectrum(mesh, k=k)
-    mesh.cot_laplacian, spdiagm(mesh.vertex_area), mesh.vertex_area, λ, ϕ, vertex_grad(mesh)...
+    grad_x, grad_y = vertex_grad(mesh)
+    grad_x = convert.(Float32, grad_x)
+    grad_y = convert.(Float32, grad_y)
+    mesh.cot_laplacian, convert.(Float32, mesh.vertex_area), λ, ϕ, grad_x, grad_y
 end
 
-function get_diffusion_inputs(mesh, method::Symbol=:spectral)
-    if method == :spectral
+function get_diffusion_inputs(mesh::Mesh, diffusion_mode::Type{<:DiffusionMode})
+    if diffusion_mode == Spectral
         A = mesh.vertex_area
         λ, ϕ =  get_spectrum(mesh)
-        return λ, ϕ, A
-    elseif method == :implicit
+        return λ, ϕ, convert.(Float32, A)
+    else
         return mesh.cot_laplacian, mesh.vertex_area
     end
 end

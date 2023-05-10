@@ -4,7 +4,7 @@ using LinearAlgebra
 using SparseArrays
 using Arpack
 using Flux
-import Zygote
+import Zygote: Zygote
 
 vdot(x,y; dims=1) = sum(x .* y, dims=dims)
 multicross(x,y) = reduce(hcat, cross.(eachcol(x), eachcol(y)))

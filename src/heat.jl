@@ -11,7 +11,7 @@ end
 heat_integrator(mesh::Mesh, signal; dt=0.001, steps=100) = heat_integrator(mesh.cot_laplacian, mesh.vertex_area, signal, dt=dt, steps=steps) 
 
 
-function heat_diffusion(λ::Vector{T}, ϕ::Matrix{T}, A::Vector{Float64}, init, t) where T <: Union{ComplexF64, Float64}
+function heat_diffusion(λ::Vector, ϕ::Matrix, A::Vector, init, t)
     # init - |V| or |V|×|C|
     # note that init may be a single vector or length(t) vectors. If it is a single vector, then heat is diffused for each time t. If it is
     # multiple vectors, then vector init[i] is diffused for time t[i]
@@ -22,11 +22,12 @@ function heat_diffusion(L, A, init, t; k=200)
     λ, ϕ = eigs(L ./ A, nev=k, sigma=1e-8)
     heat_diffusion(λ, ϕ, A, init, t)
 end
-heat_diffusion(mesh::Mesh, init, t::Float64, k=200) = heat_diffusion(mesh.cot_laplacian, mesh.vertex_area, init, t, k=k)
+heat_diffusion(mesh::Mesh, init, t, k=200) = heat_diffusion(mesh.cot_laplacian, mesh.vertex_area, init, t, k=k)
 
 function get_spectrum(mesh::Mesh; k=200)
     L = mesh.cot_laplacian ./ mesh.vertex_area
     λ, ϕ = eigs(L, nev=k, sigma=1e-8)
+    λ, ϕ =  convert.(Float32, real.(λ)), convert.(Float32, real.(ϕ))
 end
 
 function decompose_feature_by_spectrum(mesh::Mesh, λ, ϕ, f)

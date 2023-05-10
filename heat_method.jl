@@ -52,7 +52,7 @@ md"""
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
 begin
-	bunny = SR.load_obj("./meshes/dragon.obj")
+	bunny = SR.load_obj("./meshes/gourd.obj")
 	bunny = SR.normalize_mesh(bunny)
 	A = SR.vertex_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
@@ -61,6 +61,13 @@ begin
 	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=10)
 	heat_viz_fig = SR.meshviz(bunny, color=bunny_heat)
 	heat_viz_fig
+end
+
+# ╔═╡ 1ddb3f50-55b2-4604-af08-85e35990878b
+let
+	bunny = SR.load_obj("./meshes/shrec/1.obj")
+	bunny = SR.normalize_mesh(bunny)
+	λ, ϕ, A = SR.get_diffusion_inputs(bunny)
 end
 
 # ╔═╡ d6faf275-8cb4-4140-9d27-81e138f504a5
@@ -1903,6 +1910,7 @@ version = "3.5.0+0"
 # ╠═61dca968-baa2-4b37-aa7e-b251014121bf
 # ╟─e3f1500b-017d-4d93-ade5-ad025626cf1c
 # ╠═530964ef-78f7-4722-955b-377ae0a2a4b8
+# ╠═1ddb3f50-55b2-4604-af08-85e35990878b
 # ╟─d6faf275-8cb4-4140-9d27-81e138f504a5
 # ╟─f4f66184-bd23-4477-859f-9c1629b5abab
 # ╟─46ad806d-ce7c-4f25-82d4-b26254365977
