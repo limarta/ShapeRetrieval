@@ -114,7 +114,8 @@ function vertex_grad(mesh::Mesh)
         ∇[:,:,i] = grad_i
     end
     A = mesh.vertex_area
-    ∇[1,:,:]',  ∇[2,:,:]'
+    # ∇[1,:,:]',  ∇[2,:,:]'
+    ∇[1,:,:]'./A,  ∇[2,:,:]'./A
 end
 
 function embed_in_plane(frame, edges)

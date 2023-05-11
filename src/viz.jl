@@ -2,7 +2,7 @@ using WGLMakie
 
 wgl_coords(V) = [V[1,:] -V[3,:]  V[2,:]]'
 
-function meshviz(V,F; resolution=(900,900), shift_coordinates=true, args...)
+function meshviz(V,F; resolution=(900,900), shift_coordinates=false, args...)
     fig = Figure(resolution = resolution)
     ax = Axis3(fig[1,1], aspect=:data, elevation = 0.0, azimuth = -π/2)
     if shift_coordinates
@@ -16,7 +16,7 @@ function meshviz(V,F; resolution=(900,900), shift_coordinates=true, args...)
 end
 meshviz(mesh::Mesh; args...)  = meshviz(mesh.V, mesh.F; args...)
 
-function viz_field!(base, field;  shift_coordinates=true, kwargs...)
+function viz_field!(base, field;  shift_coordinates=false, kwargs...)
     arrow_args = Dict{Symbol, Any}()
     arrow_args[:linewidth] = get(kwargs, :linewidth, 0.01)
     arrow_args[:arrowsize] = get(kwargs, :arrowsize, 0.01)
@@ -46,7 +46,7 @@ function viz_point!(mesh::Mesh, id::Int; kwargs...)
     scatter!(xyz...,; kwargs...)
 end
 
-function viz_grid(V,F, data; shift_coordinates=true, kwargs...)
+function viz_grid(V,F, data; shift_coordinates=false, kwargs...)
     # data - |V|×N
     if shift_coordinates
         V = wgl_coords(V)
@@ -65,7 +65,7 @@ function viz_grid(V,F, data; shift_coordinates=true, kwargs...)
                 m = trunc(Int, N/n)
             end
         end
-        fig = Figure(resolution=(1000,200*m))
+        fig = Figure(resolution=(400*n,400*m))
         for i=1:n
             for j=1:m
                 ax = Axis3(fig[i,j],  aspect=:data, elevation = 0.0, azimuth = -π/2)

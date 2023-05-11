@@ -19,6 +19,12 @@ using SparseArrays
 # ╔═╡ d107b69a-99c1-403a-ac42-92ecc0f524ec
 using Flux
 
+# ╔═╡ e65035ee-f9be-420c-b504-4bd120b485c7
+using Zygote
+
+# ╔═╡ 22b51938-f488-4469-9015-2221ef771ff6
+using NNlib
+
 # ╔═╡ e41efaf3-b193-451f-893c-7d096c28a66a
 Threads.nthreads()
 
@@ -45,50 +51,95 @@ end
 # ╔═╡ 61dca968-baa2-4b37-aa7e-b251014121bf
 SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
+# ╔═╡ d262539a-b7b5-43a5-93e0-584badda7b9f
+md"""
+###### Load Mesh
+"""
+
+# ╔═╡ 444b0681-2847-4096-b240-92fc1edb3d52
+begin
+	bunny = SR.load_obj("./meshes/bunny.obj")
+	bunny = SR.normalize_mesh(bunny)
+	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny,k=300);
+	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
+end
+
 # ╔═╡ e3f1500b-017d-4d93-ade5-ad025626cf1c
 md"""
 ##### Heat Diffusion by Iteration
 """
 
 # ╔═╡ 530964ef-78f7-4722-955b-377ae0a2a4b8
-begin
-	bunny = SR.load_obj("./meshes/gourd.obj")
-	bunny = SR.normalize_mesh(bunny)
-	A = SR.vertex_area(bunny)
-	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(A))")
+# ╠═╡ disabled = true
+#=╠═╡
+let
 	heat_signal = zeros(bunny.nv)
 	heat_signal[[1, 2]] .= 1.0
-	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=10)
-	heat_viz_fig = SR.meshviz(bunny, color=bunny_heat)
-	heat_viz_fig
+	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=100)
+	fig = SR.meshviz(bunny, color=bunny_heat)
+	fig
 end
-
-# ╔═╡ 1ddb3f50-55b2-4604-af08-85e35990878b
-let
-	bunny = SR.load_obj("./meshes/shrec/1.obj")
-	bunny = SR.normalize_mesh(bunny)
-	λ, ϕ, A = SR.get_diffusion_inputs(bunny)
-end
+  ╠═╡ =#
 
 # ╔═╡ d6faf275-8cb4-4140-9d27-81e138f504a5
 md"""
 ##### Heat Iteration with Spectrum
 """
 
+# ╔═╡ d6f7793a-0d87-451a-a4de-5a8b0dde8e4e
+let
+	heat_init = zeros(bunny.nv)
+	heat_init[[1, 2]] .= 1.0
+	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 0.1)
+	fig = SR.meshviz(bunny, color=heat)
+	fig
+end
+
 # ╔═╡ f4f66184-bd23-4477-859f-9c1629b5abab
 md"""
 ##### Vectorizing Heat Diffusion
 """
+
+# ╔═╡ a2005d9e-03c5-4950-bd57-e1c2e7beafef
+let
+end
 
 # ╔═╡ 46ad806d-ce7c-4f25-82d4-b26254365977
 md"""
 ###### Vertex Normals and Tangent Plane
 """
 
+# ╔═╡ c8522c8d-9544-4e84-9505-5e26ed1f98dd
+let
+	frames = SR.tangent_basis(bunny)
+	fig = SR.meshviz(bunny, color=:cyan)
+	SR.viz_field!(bunny, bunny.vertex_normals, :vertex, lengthscale=0.005, linewidth=0.005)
+	SR.viz_field!(bunny, frames[:,:,1], :vertex,color=:lime, lengthscale=0.01, linewidth=0.005)
+	SR.viz_field!(bunny, frames[:,:,2], :vertex, color=:lime, lengthscale=0.01, linewidth=0.005)
+	fig
+end
+
 # ╔═╡ 6f6fc384-20a3-4eab-9990-5197611a43c5
 md"""
 ##### Visualizing Vertex-Based Gradient Field
 """
+
+# ╔═╡ 4978e7f9-8768-4fee-a3fb-384eec3f310a
+begin
+	heat_init = bunny.V[3,:]
+	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 0)
+	heat_grad_x = ∇_x * heat
+	heat_grad_y = ∇_y * heat
+	println(length(heat_grad_x))
+	display(count(x->x>1, heat_grad_x))
+	heat_field_coordinates = [heat_grad_x ;; heat_grad_y]'
+	# println(minimum(abs.(heat_grad_field_for_split)), " ",maximum(abs.(heat_grad_field_for_split)))
+	heat_field = SR.world_coordinates(bunny, heat_field_coordinates)
+	heat_field = SR.normalize_vectors(heat_field, dims=1)
+	fig = SR.meshviz(bunny, color=heat, resolution=(2000,2000))
+	SR.viz_field!(bunny, heat_field, :vertex,color=:orange, lengthscale=0.01, arrowsize=.005, linewidth=0.001)
+	fig
+end
 
 # ╔═╡ abfa93ea-e45a-4a51-8350-7aaa74a9f1ee
 md"""
@@ -113,13 +164,17 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 Arpack = "~0.5.4"
 Flux = "~0.13.15"
+NNlib = "~0.8.20"
 WGLMakie = "~0.8.8"
+Zygote = "~0.6.60"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -128,7 +183,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0-rc3"
 manifest_format = "2.0"
-project_hash = "c73aa433aecf9fc715ddce01a5ee604cdc6f2ebf"
+project_hash = "7dc51f5088604f91486e634a078fb323011e1686"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1904,17 +1959,24 @@ version = "3.5.0+0"
 # ╠═03057105-fa63-4143-8316-09cbb290e790
 # ╠═47580825-37ab-4b34-80c4-5e7425eeeae6
 # ╠═d107b69a-99c1-403a-ac42-92ecc0f524ec
+# ╠═e65035ee-f9be-420c-b504-4bd120b485c7
+# ╠═22b51938-f488-4469-9015-2221ef771ff6
 # ╠═d095560b-6169-4d1c-b600-bd6c437bbc73
 # ╠═7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
 # ╟─df42d23d-4bd9-48bc-a744-585ebc45b2f4
 # ╠═61dca968-baa2-4b37-aa7e-b251014121bf
+# ╟─d262539a-b7b5-43a5-93e0-584badda7b9f
+# ╠═444b0681-2847-4096-b240-92fc1edb3d52
 # ╟─e3f1500b-017d-4d93-ade5-ad025626cf1c
 # ╠═530964ef-78f7-4722-955b-377ae0a2a4b8
-# ╠═1ddb3f50-55b2-4604-af08-85e35990878b
 # ╟─d6faf275-8cb4-4140-9d27-81e138f504a5
+# ╠═d6f7793a-0d87-451a-a4de-5a8b0dde8e4e
 # ╟─f4f66184-bd23-4477-859f-9c1629b5abab
+# ╠═a2005d9e-03c5-4950-bd57-e1c2e7beafef
 # ╟─46ad806d-ce7c-4f25-82d4-b26254365977
+# ╠═c8522c8d-9544-4e84-9505-5e26ed1f98dd
 # ╟─6f6fc384-20a3-4eab-9990-5197611a43c5
+# ╠═4978e7f9-8768-4fee-a3fb-384eec3f310a
 # ╟─abfa93ea-e45a-4a51-8350-7aaa74a9f1ee
 # ╟─6e463ada-6e79-4f6a-87ab-57823eacff74
 # ╠═b75a7ff6-3c4b-4f1c-8c54-cf7cad1795c8

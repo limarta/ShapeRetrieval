@@ -19,5 +19,5 @@ function (model::SpatialGradientBlock)(grad_x, grad_y)
         im = model.A * grad_y
     end
     dots = grad_x .* re + grad_y .* im
-    tanh.(dots)
+    relu.(dots)
 end

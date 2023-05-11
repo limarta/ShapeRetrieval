@@ -13,13 +13,13 @@ struct DiffusionNetBlock{T<:DiffusionMode}
     mlp::Flux.Chain
 end
 @Flux.functor DiffusionNetBlock
-Flux.trainable(m::DiffusionNetBlock) = (diffusion_block = m.diffusion_block, mlp = m.mlp)
+Flux.trainable(m::DiffusionNetBlock) = (diffusion_block = m.diffusion_block, spatial_gradient=m.spatial_gradient, mlp = m.mlp)
 
 function DiffusionNetBlock(C_width::Int, mlp_hidden_dims; diffusion_mode=Spectral(), dropout=true, 
     with_gradient_features=true, with_gradient_rotations=true)
     diffusion_block = LearnedTimeDiffusionBlock(C_width) 
     spatial_gradient = SpatialGradientBlock(with_gradient_rotations, C_width)
-    mlp_layers = vcat(C_width, mlp_hidden_dims, C_width)
+    mlp_layers = vcat(2*C_width, mlp_hidden_dims, C_width)
     mlp = MLP(mlp_layers, dropout)
     DiffusionNetBlock(C_width, diffusion_mode, diffusion_block, spatial_gradient, with_gradient_features, with_gradient_rotations, mlp)
 end
@@ -42,5 +42,6 @@ function process_gradient_field(model::DiffusionNetBlock, x_diffused, ∇_x, ∇
     else
         x_intermediate = x_diffused'
     end
+    x_intermediate = vcat(x_diffused', x_intermediate)
     x_out = model.mlp(x_intermediate)
 end
