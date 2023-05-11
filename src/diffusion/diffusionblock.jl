@@ -3,14 +3,15 @@ abstract type DiffusionMode end
 struct Spectral <: DiffusionMode end
 struct Implicit <: DiffusionMode end
 
-struct DiffusionNetBlock{T<:DiffusionMode}
+struct DiffusionNetBlock{T<:DiffusionMode, S,U}
     C_width::Int
     diffusion_mode::T
     diffusion_block::LearnedTimeDiffusionBlock
     spatial_gradient::SpatialGradientBlock
     with_gradient_features::Bool
     with_gradient_rotations::Bool
-    mlp::Flux.Chain
+    mlp::MLP{S,U}
+    # mlp::Chain
 end
 @Flux.functor DiffusionNetBlock
 Flux.trainable(m::DiffusionNetBlock) = (diffusion_block = m.diffusion_block, spatial_gradient=m.spatial_gradient, mlp = m.mlp)
@@ -30,8 +31,17 @@ end
     x_out = process_gradient_field(model, model.diffusion_block(x, L, A), ∇_x, ∇_y)
 
 function (model::DiffusionNetBlock{Spectral})(x, λ, ϕ, A::Vector, ∇_x, ∇_y)
-    x_diffused = 10*model.diffusion_block(x, λ, ϕ, A)
-    x_out = process_gradient_field(model, x_diffused, ∇_x, ∇_y)
+    x_diffused = model.diffusion_block(x, λ, ϕ, A)
+    # x_out = process_gradient_field(model, x_diffused, ∇_x, ∇_y)
+    if model.with_gradient_features
+        grad_x = (∇_x * x_diffused)'
+        grad_y = (∇_y * x_diffused)'
+        x_intermediate = model.spatial_gradient(grad_x, grad_y)
+    else
+        x_intermediate = x_diffused'
+    end
+    x_intermediate = vcat(x_diffused', x_intermediate)
+    x_out = model.mlp(x_intermediate)
 end
 
 function process_gradient_field(model::DiffusionNetBlock, x_diffused, ∇_x, ∇_y)

@@ -199,41 +199,30 @@ MLP
 """
 
 # ╔═╡ 2950e891-3f70-4fcb-9de0-5de6716e1ff3
-# let
-# 	mlp = SR.MLP([2,2,])
-# 	# x_fake = rand(Float32, 2, 100)
-# end
-
-# ╔═╡ 8e80c28d-78d4-4d98-86e6-220e52cfbf9e
 # ╠═╡ disabled = true
 #=╠═╡
 let
-	sgb = SR.SpatialGradientBlock(true, 3)
-	fake_x = rand(3,100)
-	fake_y = rand(3,100)
-	sgb(fake_x, fake_y)
-end
-  ╠═╡ =#
-
-# ╔═╡ 198e34a6-37ef-4046-9f8e-3604be2c15eb
-md"""
-Diffusion Block with Rotation Spatial Gradients
-"""
-
-# ╔═╡ 429b55d0-bc43-40af-86c6-acd31c627373
-# ╠═╡ disabled = true
-#=╠═╡
-let
-	dnb = SR.DiffusionNetBlock(3, [2,4], with_gradient_features=true)
-	fake_inputs = rand(Float32, bunny.nv,3)
-	dnb(fake_inputs, λ, ϕ,A, ∇_x, ∇_y)
+	mlp = SR.MLP([2,2,3])
+	x_fake = rand(Float32, 2, 100)
+	@code_warntype mlp(x_fake)
 end
   ╠═╡ =#
 
 # ╔═╡ 163c2624-cdcb-4627-8623-3163bd64fb27
 md"""
-Visualizing  Diffusion Block
+Diffusion Block with No Spatial Gradients
 """
+
+# ╔═╡ 3d0d3ae4-caf1-4a93-9a1d-dbae5cc35a37
+# ╠═╡ disabled = true
+#=╠═╡
+let
+	dnb = SR.DiffusionNetBlock(3,[2,], with_gradient_features=true)
+	println()
+	println()
+	@code_warntype dnb(rand(Float32, 2503,3), λ, ϕ, A,∇_x, ∇_y)
+end
+  ╠═╡ =#
 
 # ╔═╡ d0315bf8-fa34-4339-b25f-14f30f5dad58
 let
@@ -249,13 +238,13 @@ let
 		y_pred = model(x, λ, ϕ, A, ∇_x, ∇_y)
 		norm(y - y_pred)
 	end
-	dnb = SR.DiffusionNetBlock(3,[4,4], with_gradient_features=false)
+	dnb = SR.DiffusionNetBlock(3,[20,20], with_gradient_features=false)
 	opt_state = Flux.setup(Adam(), dnb)
 	println("init cost: ", diffusion_loss(dnb, xyz, λ,ϕ, A,∇_x, ∇_y, y))
-	# @code_warntype dnb(xyz, λ,ϕ, A,∇_x, ∇_y)
-	@time for i=1:10
+	println(dnb)
+	@time for i=1:100000
 	    grad = gradient(diffusion_loss, dnb, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
-		if i % 10000 == 0
+		if i % 1000 == 0
 			println(diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
 		end
 	    Flux.update!(opt_state, dnb, grad[1])
@@ -266,12 +255,58 @@ let
 	y_pred = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
 	# fig = SR.meshviz(bunny, color=y_pred[3,:], shift_coordinates=true, resolution=(1500,1500))
 	y_0, y_1, y_2 = SR.diffusion_explain(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y)
-	# fig = SR.viz_grid(bunny.V, bunny.F, [y' y_pred'], dims=(2,3), shift_coordinates=false)
-	println(size([y; y_0']))
-	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_0']', shift_coordinates=false, dims=(2,3))
-	# fig
+	println(dnb)
+	
+	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_0'; y_2]', shift_coordinates=false, dims=(3,3))
 end
 
+
+# ╔═╡ 0d6e4551-57c3-4c9e-8edf-46623fca6e6a
+md"""
+Diffusion Block with Spatial Gradients
+"""
+
+# ╔═╡ 24910685-f7f8-4c3d-9b2e-30979680571d
+# ╠═╡ disabled = true
+#=╠═╡
+let
+
+	xyz = convert.(Float32,bunny.V)'
+	dnb = SR.DiffusionNetBlock(3,[4], with_gradient_features=true)
+	y = copy(bunny.V)
+	y .-= minimum.(eachrow(y))
+	y ./= maximum.(eachrow(y))
+	y = convert.(Float32, (y.-0.5))
+	
+	function diffusion_loss(model, x, λ, ϕ, A,∇_x, ∇_y, y)
+		y_pred = model(x, λ, ϕ, A, ∇_x, ∇_y)
+		norm(y - y_pred)
+	end
+	dnb = SR.DiffusionNetBlock(3,[3], with_gradient_features=true)
+	opt_state = Flux.setup(Adam(), dnb)
+	println(dnb)
+	println("init cost: ", diffusion_loss(dnb, xyz, λ,ϕ, A,∇_x, ∇_y, y))
+	# @code_warntype dnb(xyz, λ,ϕ, A,∇_x, ∇_y)
+	@time for i=1:1
+	    grad = gradient(diffusion_loss, dnb, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
+		if i % 1000 == 0
+			println(diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
+		end
+	    Flux.update!(opt_state, dnb, grad[1])
+	end
+	
+	println("final cost : ",diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
+	
+	y_pred = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
+	@code_warntype dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
+	# fig = SR.meshviz(bunny, color=y_pred[3,:], shift_coordinates=true, resolution=(1500,1500))
+	y_0, y_1, y_2 = SR.diffusion_explain(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y)
+	println(dnb)
+	
+	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_0'; y_2]', shift_coordinates=false, dims=(3,3))
+end
+
+  ╠═╡ =#
 
 # ╔═╡ 5aa34727-c41a-4533-8e9d-a186fba5a20f
 md"""
@@ -294,24 +329,24 @@ let
 		norm(y - y_pred)
 	end
 
-	net = SR.DiffusionNet(3, 3, 3, 2)
+	net = SR.DiffusionNet(3,3, 4, 2, mlp_hidden_dims=[3])
 	opt_state = Flux.setup(Adam(), net)
+
+	# @code_warntype net(xyz, λ, ϕ, A, ∇_x, ∇_y)
+	println(net)
 	println("init cost: ", diffusion_loss(net, xyz, λ,ϕ, A,∇_x, ∇_y, y))
-	@time for i=1:20000
+	println()
+	@time for i=1:1000
 	    grad = gradient(diffusion_loss, net, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
-		if i % 10000 == 0
+		if i % 1000 == 0
 			println(diffusion_loss(net, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
 		end
 	    Flux.update!(opt_state, net, grad[1])
 	end
 	println("final cost : ",diffusion_loss(net, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
-	# y_pred = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
-end
-
-# ╔═╡ d5d91582-e4b0-4105-853d-6634edffb420
-begin
-	bilinear = Flux.Bilinear((4,4)=>1)
-	bilinear((rand(4, 3), rand(4,3)))
+	y_pred = net(xyz, λ, ϕ, A, ∇_x, ∇_y)
+	println(net)
+	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_pred]', shift_coordinates=false, dims=(2,3))
 end
 
 # ╔═╡ 3db353d1-e7e8-4c68-b5d2-97dae5528f51
@@ -335,7 +370,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 [compat]
 Arpack = "~0.5.4"
 BenchmarkTools = "~1.3.2"
-Flux = "~0.13.15"
+Flux = "~0.13.16"
 NNlib = "~0.8.20"
 WGLMakie = "~0.8.8"
 Zygote = "~0.6.60"
@@ -345,9 +380,9 @@ Zygote = "~0.6.60"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.0-rc3"
+julia_version = "1.9.0"
 manifest_format = "2.0"
-project_hash = "96c371838a1f24ab7f55c306af4ffea345061c9e"
+project_hash = "80c8aed9dea795b8de48cfa7eb9384a87e36292e"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -366,15 +401,15 @@ version = "0.4.4"
 
 [[deps.Accessors]]
 deps = ["Compat", "CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "LinearAlgebra", "MacroTools", "Requires", "Test"]
-git-tree-sha1 = "c7dddee3f32ceac12abd9a21cd0c4cb489f230d2"
+git-tree-sha1 = "a4f8669e46c8cdf68661fe6bb0f7b89f51dd23cf"
 uuid = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
-version = "0.1.29"
+version = "0.1.30"
 
     [deps.Accessors.extensions]
-    AxisKeysExt = "AxisKeys"
-    IntervalSetsExt = "IntervalSets"
-    StaticArraysExt = "StaticArrays"
-    StructArraysExt = "StructArrays"
+    AccessorsAxisKeysExt = "AxisKeys"
+    AccessorsIntervalSetsExt = "IntervalSets"
+    AccessorsStaticArraysExt = "StaticArrays"
+    AccessorsStructArraysExt = "StructArrays"
 
     [deps.Accessors.weakdeps]
     AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
@@ -541,9 +576,9 @@ version = "1.49.0"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "c6d890a52d2c4d55d326439580c3b8d0875a77d9"
+git-tree-sha1 = "e30f2f4e20f7f186dc36529910beaedc60cfa644"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.15.7"
+version = "1.16.0"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -609,20 +644,20 @@ version = "0.1.1"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
-git-tree-sha1 = "b306df2650947e9eb100ec125ff8c65ca2053d30"
+git-tree-sha1 = "96d823b94ba8d187a6d8f0826e731195a74b90e9"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
-version = "2.1.1"
+version = "2.2.0"
 
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "89a9db8d28102b094992472d333674bd1a83ce2a"
+git-tree-sha1 = "738fec4d684a9a6ee9598a8bfee305b26831f28c"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
-version = "1.5.1"
+version = "1.5.2"
 weakdeps = ["IntervalSets", "StaticArrays"]
 
     [deps.ConstructionBase.extensions]
-    IntervalSetsExt = "IntervalSets"
-    StaticArraysExt = "StaticArrays"
+    ConstructionBaseIntervalSetsExt = "IntervalSets"
+    ConstructionBaseStaticArraysExt = "StaticArrays"
 
 [[deps.ContextVariablesX]]
 deps = ["Compat", "Logging", "UUIDs"]
@@ -689,10 +724,10 @@ deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[deps.Distributions]]
-deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns", "Test"]
-git-tree-sha1 = "180538ef4e3aa02b01413055a7a9e8b6047663e1"
+deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns", "Test"]
+git-tree-sha1 = "eead66061583b6807652281c0fbf291d7a9dc497"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.25.88"
+version = "0.25.90"
 
     [deps.Distributions.extensions]
     DistributionsChainRulesCoreExt = "ChainRulesCore"
@@ -799,10 +834,10 @@ uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.4"
 
 [[deps.Flux]]
-deps = ["Adapt", "CUDA", "ChainRulesCore", "Functors", "LinearAlgebra", "MLUtils", "MacroTools", "NNlib", "NNlibCUDA", "OneHotArrays", "Optimisers", "Preferences", "ProgressLogging", "Random", "Reexport", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "Zygote", "cuDNN"]
-git-tree-sha1 = "3f6f32ec0bfd80be0cb65907cf74ec796a632012"
+deps = ["Adapt", "CUDA", "ChainRulesCore", "Functors", "LinearAlgebra", "MLUtils", "MacroTools", "NNlib", "NNlibCUDA", "OneHotArrays", "Optimisers", "Preferences", "ProgressLogging", "Random", "Reexport", "SparseArrays", "SpecialFunctions", "Statistics", "Zygote", "cuDNN"]
+git-tree-sha1 = "64005071944bae14fc145661f617eb68b339189c"
 uuid = "587475ba-b771-5e3f-ad9e-33799f191a9c"
-version = "0.13.15"
+version = "0.13.16"
 
     [deps.Flux.extensions]
     AMDGPUExt = "AMDGPU"
@@ -944,9 +979,9 @@ version = "1.0.2"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
-git-tree-sha1 = "69182f9a2d6add3736b7a06ab6416aafdeec2196"
+git-tree-sha1 = "42c6b37c6a2242cb646a1dd5518631db0be9b967"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "1.8.0"
+version = "1.8.1"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
@@ -956,9 +991,9 @@ version = "2.8.1+1"
 
 [[deps.HypergeometricFunctions]]
 deps = ["DualNumbers", "LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
-git-tree-sha1 = "432b5b03176f8182bd6841fbfc42c718506a2d5f"
+git-tree-sha1 = "84204eae2dd237500835990bcade263e27674a93"
 uuid = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
-version = "0.3.15"
+version = "0.3.16"
 
 [[deps.Hyperscript]]
 deps = ["Test"]
@@ -1086,9 +1121,9 @@ version = "0.21.4"
 
 [[deps.JSServe]]
 deps = ["Base64", "CodecZlib", "Colors", "Dates", "Deno_jll", "HTTP", "Hyperscript", "LinearAlgebra", "Markdown", "MsgPack", "Observables", "RelocatableFolders", "SHA", "Sockets", "Tables", "Test", "ThreadPools", "URIs", "UUIDs", "WidgetsBase"]
-git-tree-sha1 = "06066956d58509c94e9399706816397cc53d2e88"
+git-tree-sha1 = "fc24eb61515fdb49f4702a2a8b620020fff158ca"
 uuid = "824d6782-a2ef-11e9-3a09-e5662e0c26f9"
-version = "2.2.1"
+version = "2.2.2"
 
 [[deps.JpegTurbo]]
 deps = ["CEnum", "FileIO", "ImageCore", "JpegTurbo_jll", "TOML"]
@@ -1435,9 +1470,9 @@ version = "0.8.1+0"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
-git-tree-sha1 = "7fb975217aea8f1bb360cf1dde70bad2530622d2"
+git-tree-sha1 = "51901a49222b09e3743c65b8847687ae5fc78eb2"
 uuid = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
-version = "1.4.0"
+version = "1.4.1"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1533,15 +1568,15 @@ version = "0.1.2"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
-git-tree-sha1 = "0c265aa64283740b9b885348ee52463084de0748"
+git-tree-sha1 = "259e206946c293698122f63e2b513a7c99a244e8"
 uuid = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
-version = "1.0.3"
+version = "1.1.1"
 
 [[deps.Preferences]]
 deps = ["TOML"]
-git-tree-sha1 = "47e5f437cc0e7ef2ce8406ce1e7e24d44915f88d"
+git-tree-sha1 = "7eb1686b4f04b82f96ed7a4ea5890a4f0c7a09f1"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.3.0"
+version = "1.4.0"
 
 [[deps.PrettyPrint]]
 git-tree-sha1 = "632eb4abab3449ab30c5e1afaa874f0b98b586e4"
@@ -1902,9 +1937,9 @@ version = "0.9.13"
 
 [[deps.Transducers]]
 deps = ["Adapt", "ArgCheck", "BangBang", "Baselet", "CompositionsBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "MicroCollections", "Requires", "Setfield", "SplittablesBase", "Tables"]
-git-tree-sha1 = "c42fa452a60f022e9e087823b47e5a5f8adc53d5"
+git-tree-sha1 = "25358a5f2384c490e98abd565ed321ffae2cbb37"
 uuid = "28d57a85-8fef-5791-bfe6-a80928e7c999"
-version = "0.4.75"
+version = "0.4.76"
 
 [[deps.TriplotBase]]
 git-tree-sha1 = "4d4ed7f294cda19382ff7de4c137d24d16adc89b"
@@ -2151,14 +2186,13 @@ version = "3.5.0+0"
 # ╟─bba65f1c-8ad5-438d-b8ea-ddd460d178d5
 # ╟─b8b7af63-1987-4908-8255-f45b2a1b668b
 # ╟─2950e891-3f70-4fcb-9de0-5de6716e1ff3
-# ╟─8e80c28d-78d4-4d98-86e6-220e52cfbf9e
-# ╟─198e34a6-37ef-4046-9f8e-3604be2c15eb
-# ╠═429b55d0-bc43-40af-86c6-acd31c627373
 # ╟─163c2624-cdcb-4627-8623-3163bd64fb27
+# ╠═3d0d3ae4-caf1-4a93-9a1d-dbae5cc35a37
 # ╠═d0315bf8-fa34-4339-b25f-14f30f5dad58
+# ╟─0d6e4551-57c3-4c9e-8edf-46623fca6e6a
+# ╟─24910685-f7f8-4c3d-9b2e-30979680571d
 # ╟─5aa34727-c41a-4533-8e9d-a186fba5a20f
 # ╠═ceeafdb4-3474-487d-acd1-5a77c820e0a5
-# ╠═d5d91582-e4b0-4105-853d-6634edffb420
 # ╠═3db353d1-e7e8-4c68-b5d2-97dae5528f51
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

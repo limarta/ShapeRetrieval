@@ -7,7 +7,7 @@ include("spatialgradient.jl")
 include("minimlp.jl")
 include("diffusionblock.jl")
 
-struct DiffusionNet{T<:DiffusionMode}
+struct DiffusionNet{T<:DiffusionMode, L<: Dense, S<:DiffusionNetBlock}
     C_in::Int # Input dimension
     C_out::Int 
     C_width::Int # dimension of internal block
@@ -19,9 +19,10 @@ struct DiffusionNet{T<:DiffusionMode}
     with_gradient_features::Bool
     with_gradient_rotations::Bool
     diffusion_method::T
-    first::Flux.Dense
-    last::Flux.Dense
-    blocks::Vector{<:DiffusionNetBlock}
+    first::L
+    last::L
+    # blocks::Vector{<:DiffusionNetBlock}
+    blocks::Vector{S}
 
 end
 
@@ -30,6 +31,10 @@ Flux.trainable(net::DiffusionNet) = (first=net.first, blocks=net.blocks, last=ne
 
 function DiffusionNet(C_in, C_out, C_width, N_block; last_activation=true, outputs_at=:vertex, mlp_hidden_dims=nothing, dropout=true, 
     with_gradient_features=true, with_gradient_rotations=true, diffusion_mode=Spectral())
+
+    if N_block < 1
+        throw("Invalid number of blocks $(N_block)")
+    end
     if mlp_hidden_dims === nothing
         mlp_hidden_dims = [C_width,]
     end
@@ -40,6 +45,7 @@ function DiffusionNet(C_in, C_out, C_width, N_block; last_activation=true, outpu
         blocks[b] = DiffusionNetBlock(C_width, mlp_hidden_dims; diffusion_mode=diffusion_mode, dropout=dropout,
             with_gradient_features=with_gradient_features, with_gradient_rotations=with_gradient_rotations)
     end
+    blocks = [b for b in blocks]
     DiffusionNet(C_in, C_out, C_width, N_block, last_activation, outputs_at, mlp_hidden_dims, dropout, with_gradient_features, with_gradient_rotations,
     diffusion_mode, first, last, blocks)
 end
