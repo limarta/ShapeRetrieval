@@ -1,48 +1,40 @@
+using Revise
+Revise.revise()
 import ShapeRetrieval: ShapeRetrieval as SR
 using LinearAlgebra
 using SparseArrays
 using Flux
 using CUDA
 
-bunny = SR.load_obj("./meshes/bunny.obj")
+bunny = SR.load_obj("./meshes/gourd.obj")
 bunny = SR.normalize_mesh(bunny)
 println("Vertices $(bunny.nv) Faces $(bunny.nf)")
 L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny) |> gpu
 println("Done with operators")
 
-println("Create the data")
-xyz = convert.(Float32,bunny.V)' |> gpu
-y = copy(bunny.V)
-y .-= minimum.(eachrow(y))
-y ./= maximum.(eachrow(y))
-y = convert.(Float32, (y.-0.5)) |> gpu
-
-function diffusion_loss(model, x, λ, ϕ, A,∇_x, ∇_y, y)
-    y_pred = model(x, λ, ϕ, A, ∇_x, ∇_y)
-    norm(y - y_pred)
+function diffusion_loss(model, x, ϕ, λ, A, y) 
+    norm(model(x,ϕ,λ,A) - y)
 end
+heat_init = zeros(Float32, bunny.nv,3)
+heat_init[1,1] = 1.0 #  can be|V|×|C| input
+heat_init[200,2] = 1.0
+heat_init[140,3] = 1.0; heat_init[300,3] = 1.0
+heat_init = heat_init |> gpu
 
-dnb = SR.DiffusionNetBlock(3,[3], with_gradient_features=true) |> gpu
-# # # opt_state = Flux.setup(Adam(), dnb)
-# # # println(dnb)
-# println("init cost: ", diffusion_loss(dnb, xyz, λ,ϕ, A,∇_x, ∇_y, y))
-# # # @code_warntype dnb(xyz, λ,ϕ, A,∇_x, ∇_y)
-# # # @time for i=1:1
-# # #     grad = gradient(diffusion_loss, dnb, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
-# # #     if i % 1000 == 0
-# # #         println(diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
-# # #     end
-# # #     Flux.update!(opt_state, dnb, grad[1])
-# # # end
+m = SR.LearnedTimeDiffusionBlock(3) |> gpu
+@time y_true = m(heat_init, λ,ϕ, A);
+println("t_true: ", m.diffusion_time)
+m = SR.LearnedTimeDiffusionBlock(3) |> gpu
+println("t_start: ", m.diffusion_time)
+println("start cost ", diffusion_loss(m, heat_init, λ, ϕ, A, y_true))
 
-# # println("final cost : ",diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
-
-y_pred = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
-# # # @code_warntype dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
-# # # fig = SR.meshviz(bunny, color=y_pred[3,:], shift_coordinates=true, resolution=(1500,1500))
-# # # y_0, y_1, y_2 = SR.diffusion_explain(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y)
-# # # println(dnb)
-
-# # # fig = SR.viz_grid(bunny.V, bunny.F, [y; y_0'; y_2]', shift_coordinates=false, dims=(3,3))
-
-# # x_fake = cu(rand())
+# opt_state = Flux.setup(Adam(), m)
+# @time for i=1:10000
+#     grad = gradient(diffusion_loss, m, heat_init, λ, ϕ, A, y_true)
+#     Flux.update!(opt_state, m, grad[1])
+# end
+# println("final cost : ",diffusion_loss(m,heat_init, λ, ϕ, A, y_true))
+# println("t_final: ", m.diffusion_time)
+# # predicted_heat = m(heat_init, λ, ϕ, A)
+# # heat_viz = [y_true predicted_heat]
+# # SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))

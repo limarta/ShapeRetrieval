@@ -1,9 +1,9 @@
 export LearnedTimeDiffusionBlock
 
 
-struct LearnedTimeDiffusionBlock
+struct LearnedTimeDiffusionBlock{T<:AbstractArray}
     C_inout::Int
-    diffusion_time::Vector{Float32}
+    diffusion_time::T
     # diffusion_time::Vector
 end
 function LearnedTimeDiffusionBlock(C_inout::Int)
@@ -31,7 +31,7 @@ function (model::LearnedTimeDiffusionBlock)(x, L, A)
     copy(heat_buf)
 end
 
-function (model::LearnedTimeDiffusionBlock)(x, λ::Vector, ϕ::Matrix, A::Vector)
+function (model::LearnedTimeDiffusionBlock)(x, λ, ϕ, A)
     # x - features |V| or |V|×|C| or |V|×|C|×|B|
     # λ, ϕ - eigvals, eigvecs |V|×|K|
     # A - vertex area |V|×|B|
