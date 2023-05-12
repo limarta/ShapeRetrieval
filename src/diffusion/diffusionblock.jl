@@ -30,7 +30,7 @@ end
 (model::DiffusionNetBlock{Implicit})(x, L, A::Vector, ∇_x, ∇_y) = 
     x_out = process_gradient_field(model, model.diffusion_block(x, L, A), ∇_x, ∇_y)
 
-function (model::DiffusionNetBlock{Spectral})(x, λ, ϕ, A::Vector, ∇_x, ∇_y)
+function (model::DiffusionNetBlock{Spectral})(x, λ, ϕ, A, ∇_x, ∇_y)
     x_diffused = model.diffusion_block(x, λ, ϕ, A)
     # x_out = process_gradient_field(model, x_diffused, ∇_x, ∇_y)
     if model.with_gradient_features
