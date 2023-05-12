@@ -117,8 +117,6 @@ Learned Time Diffusion Layer - Spectral mode
 """
 
 # ╔═╡ 0ea4d2d2-c3d8-4f38-a60c-298924a71840
-# ╠═╡ disabled = true
-#=╠═╡
 let
 	function diffusion_loss(model, x, ϕ, λ, A, y) 
 	    norm(model(x,ϕ,λ,A) - y)
@@ -137,7 +135,7 @@ let
 	println("start cost ", diffusion_loss(m, heat_init, λ, ϕ, A, y_true))
 	
 	opt_state = Flux.setup(Adam(), m)
-	@time for i=1:750
+	@time for i=1:10000
 	    grad = gradient(diffusion_loss, m, heat_init, λ, ϕ, A, y_true)
 		# print(grad[1])
 	    Flux.update!(opt_state, m, grad[1])
@@ -148,7 +146,6 @@ let
 	heat_viz = [y_true predicted_heat]
 	SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))
 end
-  ╠═╡ =#
 
 # ╔═╡ a5486cfa-1c7d-451b-b142-89728f79eb94
 md"""
@@ -2173,14 +2170,14 @@ version = "3.5.0+0"
 # ╠═9118c95e-4a9e-4b2f-b60d-15855aeec0f7
 # ╠═d55806e3-12b5-46d5-90d6-6342b89849a7
 # ╠═aecf9ac9-8435-445a-b985-a7704b0de05e
-# ╟─83bf7194-cc29-4fb5-8d0f-e38ae00dc93e
+# ╠═83bf7194-cc29-4fb5-8d0f-e38ae00dc93e
 # ╠═5eb160e2-b455-4471-8efb-04ec107ed164
 # ╟─ed426449-a9e4-468b-abe1-adf6b2e78f5a
 # ╠═1ddba698-2cb2-4d34-ba78-3bfe74666992
 # ╟─adf1619e-2381-499d-9af3-3398f126b709
 # ╟─8d10f5c8-48e2-48c0-b754-b5a985c7300f
 # ╟─572a9dbe-70c6-4142-b43f-cc26cd147b9f
-# ╟─0ea4d2d2-c3d8-4f38-a60c-298924a71840
+# ╠═0ea4d2d2-c3d8-4f38-a60c-298924a71840
 # ╟─a5486cfa-1c7d-451b-b142-89728f79eb94
 # ╟─d1eb38e1-122e-47d5-8fbd-cc56d76144ca
 # ╟─bba65f1c-8ad5-438d-b8ea-ddd460d178d5
@@ -2190,7 +2187,7 @@ version = "3.5.0+0"
 # ╠═3d0d3ae4-caf1-4a93-9a1d-dbae5cc35a37
 # ╠═d0315bf8-fa34-4339-b25f-14f30f5dad58
 # ╟─0d6e4551-57c3-4c9e-8edf-46623fca6e6a
-# ╟─24910685-f7f8-4c3d-9b2e-30979680571d
+# ╠═24910685-f7f8-4c3d-9b2e-30979680571d
 # ╟─5aa34727-c41a-4533-8e9d-a186fba5a20f
 # ╠═ceeafdb4-3474-487d-acd1-5a77c820e0a5
 # ╠═3db353d1-e7e8-4c68-b5d2-97dae5528f51

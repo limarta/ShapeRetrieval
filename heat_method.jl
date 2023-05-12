@@ -181,7 +181,7 @@ Zygote = "~0.6.60"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.0-rc3"
+julia_version = "1.9.0"
 manifest_format = "2.0"
 project_hash = "7dc51f5088604f91486e634a078fb323011e1686"
 
