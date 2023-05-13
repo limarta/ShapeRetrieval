@@ -15,6 +15,8 @@ include("geom.jl")
 include("heat.jl")
 include("diffusion/diffusion.jl")
 include("utils.jl")
+include("dataloader/dataloader.jl")
+include("maps/functional_maps.jl")
 include("sampler/sampler.jl")
 include("viz.jl")
 

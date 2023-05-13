@@ -1,8 +1,8 @@
-struct SpatialGradientBlock
+struct SpatialGradientBlock{T<:AbstractVecOrMat}
     is_rotation::Bool
     C_in::Int
-    A::Matrix{Float32}
-    B::Matrix{Float32}
+    A::T
+    B::T
 end
 
 @Flux.functor SpatialGradientBlock

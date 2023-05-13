@@ -117,6 +117,8 @@ Learned Time Diffusion Layer - Spectral mode
 """
 
 # ╔═╡ 0ea4d2d2-c3d8-4f38-a60c-298924a71840
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	function diffusion_loss(model, x, ϕ, λ, A, y) 
 	    norm(model(x,ϕ,λ,A) - y)
@@ -135,7 +137,7 @@ let
 	println("start cost ", diffusion_loss(m, heat_init, λ, ϕ, A, y_true))
 	
 	opt_state = Flux.setup(Adam(), m)
-	@time for i=1:10000
+	@time for i=1:10
 	    grad = gradient(diffusion_loss, m, heat_init, λ, ϕ, A, y_true)
 		# print(grad[1])
 	    Flux.update!(opt_state, m, grad[1])
@@ -146,6 +148,7 @@ let
 	heat_viz = [y_true predicted_heat]
 	SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))
 end
+  ╠═╡ =#
 
 # ╔═╡ a5486cfa-1c7d-451b-b142-89728f79eb94
 md"""
@@ -222,6 +225,8 @@ end
   ╠═╡ =#
 
 # ╔═╡ d0315bf8-fa34-4339-b25f-14f30f5dad58
+# ╠═╡ disabled = true
+#=╠═╡
 let
 
 	xyz = convert.(Float32,bunny.V)'
@@ -239,7 +244,7 @@ let
 	opt_state = Flux.setup(Adam(), dnb)
 	println("init cost: ", diffusion_loss(dnb, xyz, λ,ϕ, A,∇_x, ∇_y, y))
 	println(dnb)
-	@time for i=1:100000
+	@time for i=1:1
 	    grad = gradient(diffusion_loss, dnb, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
 		if i % 1000 == 0
 			println(diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
@@ -257,6 +262,7 @@ let
 	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_0'; y_2]', shift_coordinates=false, dims=(3,3))
 end
 
+  ╠═╡ =#
 
 # ╔═╡ 0d6e4551-57c3-4c9e-8edf-46623fca6e6a
 md"""
@@ -264,8 +270,6 @@ Diffusion Block with Spatial Gradients
 """
 
 # ╔═╡ 24910685-f7f8-4c3d-9b2e-30979680571d
-# ╠═╡ disabled = true
-#=╠═╡
 let
 
 	xyz = convert.(Float32,bunny.V)'
@@ -284,7 +288,7 @@ let
 	println(dnb)
 	println("init cost: ", diffusion_loss(dnb, xyz, λ,ϕ, A,∇_x, ∇_y, y))
 	# @code_warntype dnb(xyz, λ,ϕ, A,∇_x, ∇_y)
-	@time for i=1:1
+	@time for i=1:10000
 	    grad = gradient(diffusion_loss, dnb, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
 		if i % 1000 == 0
 			println(diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
@@ -295,7 +299,7 @@ let
 	println("final cost : ",diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
 	
 	y_pred = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
-	@code_warntype dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
+	# @code_warntype dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
 	# fig = SR.meshviz(bunny, color=y_pred[3,:], shift_coordinates=true, resolution=(1500,1500))
 	y_0, y_1, y_2 = SR.diffusion_explain(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y)
 	println(dnb)
@@ -303,7 +307,6 @@ let
 	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_0'; y_2]', shift_coordinates=false, dims=(3,3))
 end
 
-  ╠═╡ =#
 
 # ╔═╡ 5aa34727-c41a-4533-8e9d-a186fba5a20f
 md"""
@@ -311,6 +314,8 @@ md"""
 """
 
 # ╔═╡ ceeafdb4-3474-487d-acd1-5a77c820e0a5
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	xyz = convert.(Float32,bunny.V)
 	y = copy(bunny.V)
@@ -333,7 +338,7 @@ let
 	println(net)
 	println("init cost: ", diffusion_loss(net, xyz, λ,ϕ, A,∇_x, ∇_y, y))
 	println()
-	@time for i=1:1000
+	@time for i=1:1
 	    grad = gradient(diffusion_loss, net, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
 		if i % 1000 == 0
 			println(diffusion_loss(net, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
@@ -345,11 +350,20 @@ let
 	println(net)
 	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_pred]', shift_coordinates=false, dims=(2,3))
 end
+  ╠═╡ =#
 
 # ╔═╡ 3db353d1-e7e8-4c68-b5d2-97dae5528f51
 begin
 	decomposed_V = SR.spectral_decomposition(bunny, ϕ)
 	decomposed_bunny = SR.Mesh(decomposed_V', bunny.F)
+end
+
+# ╔═╡ a011d19d-47d2-4dd1-bec8-3f15f1666bf8
+begin
+	# println(length(∇_x))
+	# println(length([x for x in ∇_x if x != 0]))
+	# println(length([x for x in ∇_x if abs(x) >0]))
+	println(∇_x)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -2170,7 +2184,7 @@ version = "3.5.0+0"
 # ╠═9118c95e-4a9e-4b2f-b60d-15855aeec0f7
 # ╠═d55806e3-12b5-46d5-90d6-6342b89849a7
 # ╠═aecf9ac9-8435-445a-b985-a7704b0de05e
-# ╠═83bf7194-cc29-4fb5-8d0f-e38ae00dc93e
+# ╟─83bf7194-cc29-4fb5-8d0f-e38ae00dc93e
 # ╠═5eb160e2-b455-4471-8efb-04ec107ed164
 # ╟─ed426449-a9e4-468b-abe1-adf6b2e78f5a
 # ╠═1ddba698-2cb2-4d34-ba78-3bfe74666992
@@ -2185,11 +2199,12 @@ version = "3.5.0+0"
 # ╟─2950e891-3f70-4fcb-9de0-5de6716e1ff3
 # ╟─163c2624-cdcb-4627-8623-3163bd64fb27
 # ╠═3d0d3ae4-caf1-4a93-9a1d-dbae5cc35a37
-# ╠═d0315bf8-fa34-4339-b25f-14f30f5dad58
+# ╟─d0315bf8-fa34-4339-b25f-14f30f5dad58
 # ╟─0d6e4551-57c3-4c9e-8edf-46623fca6e6a
 # ╠═24910685-f7f8-4c3d-9b2e-30979680571d
 # ╟─5aa34727-c41a-4533-8e9d-a186fba5a20f
 # ╠═ceeafdb4-3474-487d-acd1-5a77c820e0a5
 # ╠═3db353d1-e7e8-4c68-b5d2-97dae5528f51
+# ╠═a011d19d-47d2-4dd1-bec8-3f15f1666bf8
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
