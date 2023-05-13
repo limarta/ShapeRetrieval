@@ -3,11 +3,11 @@ abstract type DiffusionMode end
 struct Spectral <: DiffusionMode end
 struct Implicit <: DiffusionMode end
 
-struct DiffusionNetBlock{T<:DiffusionMode, S,U}
+struct DiffusionNetBlock{M<:DiffusionMode, D<:LearnedTimeDiffusionBlock, G<:SpatialGradientBlock ,S,U}
     C_width::Int
-    diffusion_mode::T
-    diffusion_block::LearnedTimeDiffusionBlock
-    spatial_gradient::SpatialGradientBlock
+    diffusion_mode::M
+    diffusion_block::D
+    spatial_gradient::G
     with_gradient_features::Bool
     with_gradient_rotations::Bool
     mlp::MLP{S,U}
@@ -27,10 +27,10 @@ end
 
 # x - |V|×|C|×|B|
 
-(model::DiffusionNetBlock{Implicit})(x, L, A::Vector, ∇_x, ∇_y) = 
+(model::DiffusionNetBlock{Implicit})(x, L, A, ∇_x, ∇_y) = 
     x_out = process_gradient_field(model, model.diffusion_block(x, L, A), ∇_x, ∇_y)
 
-function (model::DiffusionNetBlock{Spectral})(x, λ, ϕ, A::Vector, ∇_x, ∇_y)
+function (model::DiffusionNetBlock{Spectral})(x, λ, ϕ, A, ∇_x, ∇_y)
     x_diffused = model.diffusion_block(x, λ, ϕ, A)
     # x_out = process_gradient_field(model, x_diffused, ∇_x, ∇_y)
     if model.with_gradient_features

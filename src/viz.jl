@@ -10,7 +10,6 @@ function meshviz(V,F; resolution=(900,900), shift_coordinates=false, args...)
     else
         V_new = V
     end
-    println(size(V_new))
     mesh!(ax, V_new', F'; args...)
     fig 
 end
@@ -65,7 +64,7 @@ function viz_grid(V,F, data; shift_coordinates=false, kwargs...)
                 m = trunc(Int, N/n)
             end
         end
-        fig = Figure(resolution=(400*n,400*m))
+        fig = Figure(resolution=(500*n,300*m))
         for i=1:n
             for j=1:m
                 ax = Axis3(fig[i,j],  aspect=:data, elevation = 0.0, azimuth = -π/2)
