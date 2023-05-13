@@ -11,7 +11,6 @@ struct DiffusionNetBlock{M<:DiffusionMode, D<:LearnedTimeDiffusionBlock, G<:Spat
     with_gradient_features::Bool
     with_gradient_rotations::Bool
     mlp::MLP{S,U}
-    # mlp::Chain
 end
 @Flux.functor DiffusionNetBlock
 Flux.trainable(m::DiffusionNetBlock) = (diffusion_block = m.diffusion_block, spatial_gradient=m.spatial_gradient, mlp = m.mlp)
