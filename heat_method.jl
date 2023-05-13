@@ -25,6 +25,9 @@ using Zygote
 # ╔═╡ 22b51938-f488-4469-9015-2221ef771ff6
 using NNlib
 
+# ╔═╡ 0629ec1a-b3ee-4ac5-9403-fd3591c1d077
+using DataStructures
+
 # ╔═╡ e41efaf3-b193-451f-893c-7d096c28a66a
 Threads.nthreads()
 
@@ -58,9 +61,10 @@ md"""
 
 # ╔═╡ 444b0681-2847-4096-b240-92fc1edb3d52
 begin
-	bunny = SR.load_obj("./meshes/bunny.obj")
-	bunny = SR.normalize_mesh(bunny)
+	bunny = SR.load_obj("./meshes/dragon.obj")
+	bunny = SR.normalize_area(bunny)
 	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny,k=300);
+	λ_t, ϕ_t = eigen(Matrix(L))
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
 end
 
@@ -88,9 +92,16 @@ md"""
 
 # ╔═╡ d6f7793a-0d87-451a-a4de-5a8b0dde8e4e
 let
-	heat_init = zeros(bunny.nv)
-	heat_init[[1, 2]] .= 1.0
-	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 0.1)
+	function myshowall(io, x, limit = false) 
+	  println(io, summary(x), ":")
+	  Base.print_matrix(IOContext(io, :limit => limit), x)
+	end
+	heat_init = ones(bunny.nv)
+	heat_init[1] = 10
+	println(λ)
+	# println(ϕ[1,:])
+	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 1000)
+	myshowall(stdout, heat, false)
 	fig = SR.meshviz(bunny, color=heat)
 	fig
 end
@@ -110,6 +121,8 @@ md"""
 """
 
 # ╔═╡ c8522c8d-9544-4e84-9505-5e26ed1f98dd
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	frames = SR.tangent_basis(bunny)
 	fig = SR.meshviz(bunny, color=:cyan)
@@ -118,6 +131,7 @@ let
 	SR.viz_field!(bunny, frames[:,:,2], :vertex, color=:lime, lengthscale=0.01, linewidth=0.005)
 	fig
 end
+  ╠═╡ =#
 
 # ╔═╡ 6f6fc384-20a3-4eab-9990-5197611a43c5
 md"""
@@ -125,9 +139,9 @@ md"""
 """
 
 # ╔═╡ 4978e7f9-8768-4fee-a3fb-384eec3f310a
-begin
+let
 	heat_init = bunny.V[3,:]
-	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 0)
+	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 1)
 	heat_grad_x = ∇_x * heat
 	heat_grad_y = ∇_y * heat
 	println(length(heat_grad_x))
@@ -136,7 +150,7 @@ begin
 	# println(minimum(abs.(heat_grad_field_for_split)), " ",maximum(abs.(heat_grad_field_for_split)))
 	heat_field = SR.world_coordinates(bunny, heat_field_coordinates)
 	heat_field = SR.normalize_vectors(heat_field, dims=1)
-	fig = SR.meshviz(bunny, color=heat, resolution=(2000,2000))
+	fig = SR.meshviz(bunny, color=heat, resolution=(1000,1000))
 	SR.viz_field!(bunny, heat_field, :vertex,color=:orange, lengthscale=0.01, arrowsize=.005, linewidth=0.001)
 	fig
 end
@@ -152,16 +166,55 @@ Smooth Spectral Decomposition
 """
 
 # ╔═╡ b75a7ff6-3c4b-4f1c-8c54-cf7cad1795c8
-begin
+let
 	V_sampled, F_sampled = SR.get_in_sphere(bunny, 300, 0.3)
-	@time bunny_sampled = SR.relabel_mesh_from_mask(bunny, V_sampled, F_sampled)
+	@time bunny_sampled, relabels = SR.relabel_mesh_from_mask(bunny, V_sampled, F_sampled)
 	sampled_mesh_fig = SR.meshviz(bunny_sampled)
+end
+
+# ╔═╡ a0bc09d9-a45d-4004-bf2d-52b16d05914a
+let
+	i = 1
+	M = diagm(A)
+	println(norm(L * ϕ[:,i] - λ[i]ϕ[:,i]))
+
+	println(λ)
+	println(λ_t)
+	display(ϕ)
+	display(ϕ_t)
+	println()
+
+	init = ones(bunny.nv)
+	init[1] = 10
+	println(ϕ' * init)
+	e_i = ϕ[:,1]
+	println()
+	t = 0
+	P = ϕ *((ϕ' * init ).* exp.(-t *λ))
+	display(P)
+	P_t = ϕ_t *((ϕ_t' * init ))
+	display(P_t)
+	K = 300
+	λ_p, ϕ_p = λ_t[1:K], ϕ[:,1:K]
+
+	P_p = ϕ_p *((ϕ_p' * init ))
+	display(P_p)
+
+	
+end
+
+# ╔═╡ 78f685d0-27bb-498d-88a4-6f44bfb49aa4
+let
+	i = 5
+	M = diagm(A)
+	println(norm(L * ϕ[:,i] - λ[i]*M*ϕ[:,i]))
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
@@ -171,6 +224,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 Arpack = "~0.5.4"
+DataStructures = "~0.18.13"
 Flux = "~0.13.15"
 NNlib = "~0.8.20"
 WGLMakie = "~0.8.8"
@@ -183,7 +237,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0"
 manifest_format = "2.0"
-project_hash = "7dc51f5088604f91486e634a078fb323011e1686"
+project_hash = "c3181f7dfd8840e8e25e99181a84fbf9128379d9"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1961,6 +2015,7 @@ version = "3.5.0+0"
 # ╠═d107b69a-99c1-403a-ac42-92ecc0f524ec
 # ╠═e65035ee-f9be-420c-b504-4bd120b485c7
 # ╠═22b51938-f488-4469-9015-2221ef771ff6
+# ╠═0629ec1a-b3ee-4ac5-9403-fd3591c1d077
 # ╠═d095560b-6169-4d1c-b600-bd6c437bbc73
 # ╠═7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
 # ╟─df42d23d-4bd9-48bc-a744-585ebc45b2f4
@@ -1980,5 +2035,7 @@ version = "3.5.0+0"
 # ╟─abfa93ea-e45a-4a51-8350-7aaa74a9f1ee
 # ╟─6e463ada-6e79-4f6a-87ab-57823eacff74
 # ╠═b75a7ff6-3c4b-4f1c-8c54-cf7cad1795c8
+# ╠═a0bc09d9-a45d-4004-bf2d-52b16d05914a
+# ╠═78f685d0-27bb-498d-88a4-6f44bfb49aa4
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

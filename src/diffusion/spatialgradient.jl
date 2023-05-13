@@ -8,7 +8,7 @@ end
 @Flux.functor SpatialGradientBlock
 Flux.trainable(net::SpatialGradientBlock) = (A=net.A, B=net.B)
 
-SpatialGradientBlock(is_rotation::Bool, C_in::Int) = SpatialGradientBlock(is_rotation, C_in, rand(Float32, C_in,C_in), rand(Float32,C_in, C_in))
+SpatialGradientBlock(is_rotation::Bool, C_in::Int) = SpatialGradientBlock(is_rotation, C_in, rand(Float32, C_in,C_in).-0.5f0, rand(Float32,C_in, C_in).-0.5f0)
 
 function (model::SpatialGradientBlock)(grad_x, grad_y)
     if model.is_rotation 

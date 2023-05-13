@@ -114,8 +114,7 @@ function vertex_grad(mesh::Mesh)
         ∇[:,:,i] = grad_i
     end
     A = mesh.vertex_area
-    # ∇[1,:,:]',  ∇[2,:,:]'
-    ∇[1,:,:]'./A,  ∇[2,:,:]'./A
+    ∇[1,:,:]',  ∇[2,:,:]'
 end
 
 function embed_in_plane(frame, edges)
@@ -167,5 +166,10 @@ normals(mesh::Mesh) = normals(mesh.V, mesh.F)
 normalize_mesh(mesh::Mesh) = normalize_mesh(mesh.V, mesh.F)
 vertex_area(mesh::Mesh) = vertex_area(mesh.V, mesh.F)
 vertex_normals(mesh::Mesh) = vertex_normals(mesh.V,mesh.F, mesh.face_area)
+
+function normalize_area(mesh::Mesh)
+    total_area = sum(mesh.face_area)
+    return Mesh(mesh.V/sqrt(total_area), mesh.F, mesh.normals)
+end
 
 export cot_laplacian

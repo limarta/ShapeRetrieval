@@ -31,16 +31,8 @@ end
 
 function (model::DiffusionNetBlock{Spectral})(x, λ, ϕ, A, ∇_x, ∇_y)
     x_diffused = model.diffusion_block(x, λ, ϕ, A)
-    # x_out = process_gradient_field(model, x_diffused, ∇_x, ∇_y)
-    if model.with_gradient_features
-        grad_x = (∇_x * x_diffused)'
-        grad_y = (∇_y * x_diffused)'
-        x_intermediate = model.spatial_gradient(grad_x, grad_y)
-    else
-        x_intermediate = x_diffused'
-    end
-    x_intermediate = vcat(x_diffused', x_intermediate)
-    x_out = model.mlp(x_intermediate)
+    x_out = process_gradient_field(model, x_diffused, ∇_x, ∇_y)
+    x_out = x_out + x'
 end
 
 function process_gradient_field(model::DiffusionNetBlock, x_diffused, ∇_x, ∇_y)

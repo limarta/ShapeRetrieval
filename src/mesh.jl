@@ -75,10 +75,6 @@ function connected_mesh_in_sphere(mesh::Mesh, point, radius)
     V_sampled .& visited_vertices, F_sampled .& visited_faces
 end
 
-function normalized_area_mesh(mesh::Mesh)
-    total_area = sum(mesh.face_area)
-    return Mesh(mesh.V/sqrt(total_area), mesh.F, mesh.normals)
-end
 
 function spectral_decomposition(mesh::Mesh, ϕ)
     c = ϕ'*(mesh.vertex_area .* mesh.V')
