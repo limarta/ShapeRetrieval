@@ -1,5 +1,6 @@
+- Center mesh (Amani)
+- Random rotation of mesh (Amani)
 - Cache operators to disk. Maybe with JLD2? (Amani) 
-- Random rotation (Amani)
 - Functional maps (Ian)
 - Dataloader (Ian)
 - Visualize layers (Ian)

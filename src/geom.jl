@@ -171,5 +171,25 @@ function normalize_area(mesh::Mesh)
     total_area = sum(mesh.face_area)
     return Mesh(mesh.V/sqrt(total_area), mesh.F, mesh.normals)
 end
+function get_operators(mesh::Mesh; k=200)
+    λ, ϕ = get_spectrum(mesh, k=k)
+    grad_x, grad_y = vertex_grad(mesh)
+    grad_x = sparse(convert.(Float32, grad_x))
+    grad_y = sparse(convert.(Float32, grad_y))
+    mesh.cot_laplacian, convert.(Float32, mesh.vertex_area), λ, ϕ, grad_x, grad_y
+end
+
+function spectral_decomposition(mesh::Mesh, ϕ)
+    c = ϕ'*(mesh.vertex_area .* mesh.V')
+    real.(ϕ * c)
+end
+
+function smooth_spectral_decomposition(mesh::Mesh, K::Int, ϕ)
+    c = ϕ'*(mesh.vertex_area .* mesh.V')
+    decaying = [sigmoid(K-k) for k=1:size(ϕ)[2]]
+    damped_c = decaying .* c
+    real.(ϕ * damped_c)
+end
+
 
 export cot_laplacian
