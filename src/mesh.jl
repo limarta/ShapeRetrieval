@@ -42,11 +42,10 @@ end
 function connected_mesh_in_sphere(mesh::Mesh, point, radius)
     V_sampled, F_sampled = get_in_sphere(mesh, point, radius)
 
-    dist = vec(norm(mesh.V .- point, dims=1))
-    start_vertex = argmin(dist)
-    
+    start_vertex = point
+        
     visited_vertices = .!V_sampled
-    stack = Stack(Int)
+    stack = Stack{Int}()
     push!(stack, start_vertex)
     visited_vertices[start_vertex] = true
     visited_faces = .!F_sampled
@@ -56,7 +55,8 @@ function connected_mesh_in_sphere(mesh::Mesh, point, radius)
         vert = pop!(stack)
         
         faces = findall(==(vert), mesh.F)
-        for (_, f) in faces
+        for F in faces
+            f = F[2]
             if visited_faces[f]
                 continue
             end
@@ -72,8 +72,7 @@ function connected_mesh_in_sphere(mesh::Mesh, point, radius)
             end
         end
     end
-
-    filter(v->visited_vertices[v], V_sampled), filter(f->skip_faces[f], F_sampled)
+    V_sampled .& visited_vertices, F_sampled .& visited_faces
 end
 
 function normalized_area_mesh(mesh::Mesh)
