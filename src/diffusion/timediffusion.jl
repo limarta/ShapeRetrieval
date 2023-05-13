@@ -6,7 +6,7 @@ struct LearnedTimeDiffusionBlock{T<:AbstractArray}
     diffusion_time::T
 end
 function LearnedTimeDiffusionBlock(C_inout::Int)
-    LearnedTimeDiffusionBlock(C_inout, 3*rand(Float32, C_inout))
+    LearnedTimeDiffusionBlock(C_inout, rand(Float32, C_inout))
 end
 
 Flux.@functor LearnedTimeDiffusionBlock

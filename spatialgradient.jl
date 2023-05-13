@@ -28,6 +28,9 @@ using Zygote
 # ╔═╡ 9118c95e-4a9e-4b2f-b60d-15855aeec0f7
 using NNlib
 
+# ╔═╡ 0b1551dd-0d40-4a1d-88dc-d9598bd4165a
+using DataStructures
+
 # ╔═╡ 65fefab0-ea3e-11ed-2f6f-175b14acddf4
 Threads.nthreads()
 
@@ -62,11 +65,11 @@ Load Mesh and Precompute Operators
 # ╔═╡ 1ddba698-2cb2-4d34-ba78-3bfe74666992
 begin
 	bunny = SR.load_obj("./meshes/bunny.obj")
-	bunny = SR.normalize_mesh(bunny)
+	bunny = SR.normalize_area(bunny)
 	println("Vertices $(bunny.nv) Faces $(bunny.nf)")
-	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
+	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny, k=400);
 	d = count(x->x != 0, bunny.cot_laplacian) / (bunny.nv ^2 )
-	println("Density: $(d)")
+	println("Area: $(sum(bunny.vertex_area)), Density: $(d)")
 	nothing
 end
 
@@ -82,32 +85,34 @@ let
 	function diffusion_loss(model, x, L, A, y) 
 	    norm(model(x, L, A) - y)
 	end
-	heat_init = zeros(bunny.nv,3)
-	heat_init[1,1] = 1.0 #  can be|V|×|C| input
+	println(λ)
+	heat_init = ones(bunny.nv,3)
+	heat_init[1,1] = 100.0 #  can be|V|×|C| input
 	heat_init[200,2] = 1.0
 	heat_init[140,3] = 1.0; heat_init[300,3] = 1.0
-	
-	L, A = SR.get_diffusion_inputs(bunny, SR.Implicit)
-	m = SR.LearnedTimeDiffusionBlock(3)
 
-	opt_state = Flux.setup(Adam(), m)
-	y_true = m(heat_init, L, A)
-	println("t_true: ", m.diffusion_time)
-	m = SR.LearnedTimeDiffusionBlock(3)
-	println("t_start: ", m.diffusion_time)
-	println("start cost ", diffusion_loss(m, heat_init, L, A, y_true))
-	@time for i=1:40
-		if i%10==0
-			println(i)
-		end
-	    grad = gradient(diffusion_loss, m, heat_init, L, A, y_true)
-	    Flux.update!(opt_state, m, grad[1])
-	end
-	println("final cost : ",diffusion_loss(m,heat_init, L, A, y_true))
-	println("t_final: ", m.diffusion_time)
-	predicted_heat = m(heat_init, L, A)
-	heat_viz = [y_true predicted_heat]
-	SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))
+	m = SR.LearnedTimeDiffusionBlock(3, [1, 0.0, 0.0])
+	println(m)
+	m(heat_init, L, A)
+
+	# opt_state = Flux.setup(Adam(), m)
+	# y_true = m(heat_init, L, A)
+	# println("t_true: ", m.diffusion_time)
+	# m = SR.LearnedTimeDiffusionBlock(3)
+	# println("t_start: ", m.diffusion_time)
+	# println("start cost ", diffusion_loss(m, heat_init, L, A, y_true))
+	# @time for i=1:40
+	# 	if i%10==0
+	# 		println(i)
+	# 	end
+	#     grad = gradient(diffusion_loss, m, heat_init, L, A, y_true)
+	#     Flux.update!(opt_state, m, grad[1])
+	# end
+	# println("final cost : ",diffusion_loss(m,heat_init, L, A, y_true))
+	# println("t_final: ", m.diffusion_time)
+	# predicted_heat = m(heat_init, L, A)
+	# heat_viz = [y_true predicted_heat]
+	# SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))
 end
   ╠═╡ =#
 
@@ -124,11 +129,10 @@ let
 	    norm(model(x,ϕ,λ,A) - y)
 	end
 	heat_init = zeros(Float32, bunny.nv,3)
-	heat_init[1,1] = 1.0 #  can be|V|×|C| input
+	heat_init[1,1] = 10.0 #  can be|V|×|C| input
 	heat_init[200,2] = 1.0
-	heat_init[140,3] = 1.0; heat_init[300,3] = 1.0
+	heat_init[140,3] = 10.0; heat_init[300,3] = 1.0
 	
-	λ,ϕ,A = SR.get_diffusion_inputs(bunny, SR.Spectral)
 	m = SR.LearnedTimeDiffusionBlock(3)
 	y_true = m(heat_init, λ,ϕ, A)
 	println("t_true: ", m.diffusion_time)
@@ -137,7 +141,7 @@ let
 	println("start cost ", diffusion_loss(m, heat_init, λ, ϕ, A, y_true))
 	
 	opt_state = Flux.setup(Adam(), m)
-	@time for i=1:10
+	@time for i=1:1000
 	    grad = gradient(diffusion_loss, m, heat_init, λ, ϕ, A, y_true)
 		# print(grad[1])
 	    Flux.update!(opt_state, m, grad[1])
@@ -173,7 +177,7 @@ let
 
 	
 	opt_state = Flux.setup(Adam(), sgb)
-	sgb = SR.SpatialGradientBlock(false, C_in)
+	sgb = SR.SpatialGradientBlock(true, C_in)
 	println("A_start: ", sgb.A)
 	println("init cost: ", spatial_loss(sgb, fake_x, fake_y, y_true))
 
@@ -290,7 +294,7 @@ let
 	# @code_warntype dnb(xyz, λ,ϕ, A,∇_x, ∇_y)
 	@time for i=1:10000
 	    grad = gradient(diffusion_loss, dnb, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
-		if i % 1000 == 0
+		if i % 100 == 0
 			println(diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
 		end
 	    Flux.update!(opt_state, dnb, grad[1])
@@ -353,24 +357,31 @@ end
   ╠═╡ =#
 
 # ╔═╡ 3db353d1-e7e8-4c68-b5d2-97dae5528f51
+# ╠═╡ disabled = true
+#=╠═╡
 begin
 	decomposed_V = SR.spectral_decomposition(bunny, ϕ)
 	decomposed_bunny = SR.Mesh(decomposed_V', bunny.F)
 end
+  ╠═╡ =#
 
 # ╔═╡ a011d19d-47d2-4dd1-bec8-3f15f1666bf8
+# ╠═╡ disabled = true
+#=╠═╡
 begin
 	# println(length(∇_x))
 	# println(length([x for x in ∇_x if x != 0]))
 	# println(length([x for x in ∇_x if abs(x) >0]))
 	println(∇_x)
 end
+  ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
@@ -381,6 +392,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 [compat]
 Arpack = "~0.5.4"
 BenchmarkTools = "~1.3.2"
+DataStructures = "~0.18.13"
 Flux = "~0.13.16"
 NNlib = "~0.8.20"
 WGLMakie = "~0.8.8"
@@ -393,7 +405,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0"
 manifest_format = "2.0"
-project_hash = "80c8aed9dea795b8de48cfa7eb9384a87e36292e"
+project_hash = "f8d76faf83318e12bf0f024a3ed88483430ba5ab"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -2182,6 +2194,7 @@ version = "3.5.0+0"
 # ╠═f8b2155c-73c6-4689-80e6-e8bc5a6dd3c9
 # ╠═b3a75283-4a12-4a5e-99d7-ebe5083bd323
 # ╠═9118c95e-4a9e-4b2f-b60d-15855aeec0f7
+# ╠═0b1551dd-0d40-4a1d-88dc-d9598bd4165a
 # ╠═d55806e3-12b5-46d5-90d6-6342b89849a7
 # ╠═aecf9ac9-8435-445a-b985-a7704b0de05e
 # ╟─83bf7194-cc29-4fb5-8d0f-e38ae00dc93e
@@ -2191,7 +2204,7 @@ version = "3.5.0+0"
 # ╟─adf1619e-2381-499d-9af3-3398f126b709
 # ╟─8d10f5c8-48e2-48c0-b754-b5a985c7300f
 # ╟─572a9dbe-70c6-4142-b43f-cc26cd147b9f
-# ╠═0ea4d2d2-c3d8-4f38-a60c-298924a71840
+# ╟─0ea4d2d2-c3d8-4f38-a60c-298924a71840
 # ╟─a5486cfa-1c7d-451b-b142-89728f79eb94
 # ╟─d1eb38e1-122e-47d5-8fbd-cc56d76144ca
 # ╟─bba65f1c-8ad5-438d-b8ea-ddd460d178d5
