@@ -1,4 +1,5 @@
-Main Priority
-- Automate patch sampling (i.e. a portion of the mesh) for inference
-- Flux.jl for the neural layers
-- Implement vertex_grad for diffusion
+- Cache operators to disk. Maybe with JLD2? (Amani) 
+- Random rotation (Amani)
+- Functional maps (Ian)
+- Dataloader (Ian)
+- Visualize layers (Ian)

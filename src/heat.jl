@@ -38,7 +38,14 @@ function decompose_feature_by_spectrum(mesh::Mesh, λ, ϕ, f)
     real.(ϕ .* c')
 end
 
-# function heat_signature_kernel()
-# function heat_signature_kernel(mesh::Mesh, t)
+function hks(λ, ϕ, A, t)
+    n = size(ϕ)[1]
+    init = I(n)
+    h = heat_diffusion(λ, ϕ, A, init, t)
+    diag(h)
+end
 
-# end
+function hks(λ, ϕ, A, n::Int)
+    h = [hks(λ, ϕ, A, 2.0f0^t) for t=0:(n-1) ]
+    hcat(h...)
+end

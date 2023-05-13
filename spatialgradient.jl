@@ -274,10 +274,11 @@ Diffusion Block with Spatial Gradients
 """
 
 # ╔═╡ 24910685-f7f8-4c3d-9b2e-30979680571d
+# ╠═╡ disabled = true
+#=╠═╡
 let
 
 	xyz = convert.(Float32,bunny.V)'
-	dnb = SR.DiffusionNetBlock(3,[4], with_gradient_features=true)
 	y = copy(bunny.V)
 	y .-= minimum.(eachrow(y))
 	y ./= maximum.(eachrow(y))
@@ -311,6 +312,7 @@ let
 	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_0'; y_2]', shift_coordinates=false, dims=(3,3))
 end
 
+  ╠═╡ =#
 
 # ╔═╡ 5aa34727-c41a-4533-8e9d-a186fba5a20f
 md"""
@@ -318,21 +320,20 @@ md"""
 """
 
 # ╔═╡ ceeafdb4-3474-487d-acd1-5a77c820e0a5
-# ╠═╡ disabled = true
-#=╠═╡
 let
 	xyz = convert.(Float32,bunny.V)
 	y = copy(bunny.V)
 	y .-= minimum.(eachrow(y))
 	y ./= maximum.(eachrow(y))
 	y = convert.(Float32, (y.-0.5))
+	y = cos.(4*y)
 	
 
 	# net(fake_inputs, λ, ϕ, A, ∇_x, ∇_y)
 	
 	function diffusion_loss(model, x, λ, ϕ, A,∇_x, ∇_y, y)
 		y_pred = model(x, λ, ϕ, A, ∇_x, ∇_y)
-		norm(y - y_pred)
+		norm(y - y_pred) ./ size(x)[2]
 	end
 
 	net = SR.DiffusionNet(3,3, 4, 2, mlp_hidden_dims=[3])
@@ -342,9 +343,9 @@ let
 	println(net)
 	println("init cost: ", diffusion_loss(net, xyz, λ,ϕ, A,∇_x, ∇_y, y))
 	println()
-	@time for i=1:1
+	@time for i=1:50000
 	    grad = gradient(diffusion_loss, net, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
-		if i % 1000 == 0
+		if i % 100 == 0
 			println(diffusion_loss(net, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
 		end
 	    Flux.update!(opt_state, net, grad[1])
@@ -354,7 +355,6 @@ let
 	println(net)
 	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_pred]', shift_coordinates=false, dims=(2,3))
 end
-  ╠═╡ =#
 
 # ╔═╡ 3db353d1-e7e8-4c68-b5d2-97dae5528f51
 # ╠═╡ disabled = true

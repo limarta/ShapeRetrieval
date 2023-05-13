@@ -61,7 +61,7 @@ md"""
 
 # ╔═╡ 444b0681-2847-4096-b240-92fc1edb3d52
 begin
-	bunny = SR.load_obj("./meshes/dragon.obj")
+	bunny = SR.load_obj("./meshes/bunny.obj")
 	bunny = SR.normalize_area(bunny)
 	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny,k=300);
 	λ_t, ϕ_t = eigen(Matrix(L))
@@ -91,6 +91,8 @@ md"""
 """
 
 # ╔═╡ d6f7793a-0d87-451a-a4de-5a8b0dde8e4e
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	function myshowall(io, x, limit = false) 
 	  println(io, summary(x), ":")
@@ -105,6 +107,7 @@ let
 	fig = SR.meshviz(bunny, color=heat)
 	fig
 end
+  ╠═╡ =#
 
 # ╔═╡ f4f66184-bd23-4477-859f-9c1629b5abab
 md"""
@@ -139,6 +142,8 @@ md"""
 """
 
 # ╔═╡ 4978e7f9-8768-4fee-a3fb-384eec3f310a
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	heat_init = bunny.V[3,:]
 	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 1)
@@ -154,6 +159,7 @@ let
 	SR.viz_field!(bunny, heat_field, :vertex,color=:orange, lengthscale=0.01, arrowsize=.005, linewidth=0.001)
 	fig
 end
+  ╠═╡ =#
 
 # ╔═╡ abfa93ea-e45a-4a51-8350-7aaa74a9f1ee
 md"""
@@ -166,13 +172,18 @@ Smooth Spectral Decomposition
 """
 
 # ╔═╡ b75a7ff6-3c4b-4f1c-8c54-cf7cad1795c8
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	V_sampled, F_sampled = SR.get_in_sphere(bunny, 300, 0.3)
 	@time bunny_sampled, relabels = SR.relabel_mesh_from_mask(bunny, V_sampled, F_sampled)
 	sampled_mesh_fig = SR.meshviz(bunny_sampled)
 end
+  ╠═╡ =#
 
 # ╔═╡ a0bc09d9-a45d-4004-bf2d-52b16d05914a
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	i = 1
 	M = diagm(A)
@@ -202,12 +213,25 @@ let
 
 	
 end
+  ╠═╡ =#
 
 # ╔═╡ 78f685d0-27bb-498d-88a4-6f44bfb49aa4
 let
 	i = 5
 	M = diagm(A)
 	println(norm(L * ϕ[:,i] - λ[i]*M*ϕ[:,i]))
+end
+
+# ╔═╡ 258801e7-e23d-4d48-a89f-3fcfcd6e07a2
+md"""
+Heat Signature Kernel
+"""
+
+# ╔═╡ fb9ed22e-f529-45bb-b800-e8d69c35c486
+let
+	heat = SR.hks(λ, ϕ, A, 8)
+	println(size(heat))
+	fig = SR.meshviz(bunny, color=heat[:,4])
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -2035,7 +2059,9 @@ version = "3.5.0+0"
 # ╟─abfa93ea-e45a-4a51-8350-7aaa74a9f1ee
 # ╟─6e463ada-6e79-4f6a-87ab-57823eacff74
 # ╠═b75a7ff6-3c4b-4f1c-8c54-cf7cad1795c8
-# ╠═a0bc09d9-a45d-4004-bf2d-52b16d05914a
+# ╟─a0bc09d9-a45d-4004-bf2d-52b16d05914a
 # ╠═78f685d0-27bb-498d-88a4-6f44bfb49aa4
+# ╟─258801e7-e23d-4d48-a89f-3fcfcd6e07a2
+# ╠═fb9ed22e-f529-45bb-b800-e8d69c35c486
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
