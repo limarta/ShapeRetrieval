@@ -16,6 +16,9 @@ using LinearAlgebra
 # ╔═╡ d1848368-4802-441f-af2e-dcfa2e3ce030
 using SparseArrays
 
+# ╔═╡ f462f1e4-6bfe-42e6-a552-2aedf7d20dcd
+using BenchmarkTools
+
 # ╔═╡ d9fabcdd-2337-4ae5-b610-ba022d076064
 using Flux
 
@@ -67,15 +70,15 @@ md"""
 
 # ╔═╡ f5dbd657-f4ce-4b3e-92f9-9e76f3a25e95
 begin
-	bunny = SR.load_obj("./meshes/bunny.obj")
+	bunny = SR.load_obj("./meshes/dragon.obj")
 	bunny_1 = SR.normalize_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
-	bunny_2 = copy(bunny)
+	bunny_2 = copy(bunny_1)
 
-	k = 300
-	L_1, A_1, λ_1, ϕ_1, ∇_x_1, ∇_y_1 = SR.get_operators(bunny;k=k);
-	L_2, A_2, λ_2, ϕ_2, ∇_x_2, ∇_y_2 = SR.get_operators(bunny_2;k=k);
-	fig = SR.meshviz([bunny, bunny_2], shift_coordinates=true)
+	# k = 250
+	# L_1, A_1, λ_1, ϕ_1, ∇_x_1, ∇_y_1 = SR.get_operators(bunny_1;k=k);
+	# L_2, A_2, λ_2, ϕ_2, ∇_x_2, ∇_y_2 = SR.get_operators(bunny_2;k=k);
+	# fig = SR.meshviz([bunny, bunny_2], shift_coordinates=true)
 end
 
 # ╔═╡ 013449b8-8c0f-48d1-adb2-7f839cd01fd8
@@ -91,23 +94,35 @@ let
 	fig = SR.meshviz([bunny, spectral_bunny], shift_coordinates=true)
 end
 
-# ╔═╡ b02d3f2f-66f2-49e0-8480-3f6cbccec37a
-let
-	X_k = SR.shell_coordinates(bunny, 50, ϕ_1)
-	fig = SR.meshviz(X_k)
-	SR.viz_field!(X_k; linewidth=0.001, lengthscale=0.001, arrowsize=0.001)
-	fig
-end
+# ╔═╡ fcee8a90-c00b-43c6-9953-dd5b490e7024
+md"""
+Ideal Correspondence
+"""
 
 # ╔═╡ 66a65ad0-331a-4a13-b964-be7c4e2eb103
-begin
-	
+let
+	K = 12
+	S_1 = SR.shell_coordinates(bunny, K, ϕ_1)
+	S_2 = SR.shell_coordinates(bunny, K, ϕ_2)
+	f_1 = SR.hks(λ_1, ϕ_1, A_1, 1)
+	f_2 = SR.hks(λ_2, ϕ_2, A_2, 1)
+	C = diagm(sign.(ϕ_1[1,1:K] .* sign.(ϕ_2[1,1:K]))) # Hackish but for demonstration
+	e = SR.correspondence_score(S_1, S_2, f_1, f_2, I, C, zeros(K,3))
+	display(e)
+	fig = SR.meshviz([S_1, S_2], shift_coordinates=true)
+end
+
+# ╔═╡ 5e0bed4d-6814-4b62-bf42-a2bf9ba9b1a3
+let
+	@btime SR.face_area($(bunny.V), $(bunny.F))
+	@btime SR.vertex_area($(bunny.V), $(bunny.F))
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
@@ -120,6 +135,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 Arpack = "~0.5.4"
+BenchmarkTools = "~1.3.2"
 DataStructures = "~0.18.13"
 Flux = "~0.13.16"
 JLD2 = "~0.4.31"
@@ -135,7 +151,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0"
 manifest_format = "2.0"
-project_hash = "6adc409a87faafd397d0e2ee98b0864d23908582"
+project_hash = "3287c0d26ce074ead6847daff9fbcc81280af521"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -253,6 +269,12 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 git-tree-sha1 = "aebf55e6d7795e02ca500a689d326ac979aaf89e"
 uuid = "9718e550-a3fa-408a-8086-8db961cd8217"
 version = "0.1.1"
+
+[[deps.BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
+git-tree-sha1 = "d9a9701b899b30332bbcb3e1679c41cce81fb0e8"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "1.3.2"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "43b1a4a8f797c1cddadf60499a8a077d4af2cd2d"
@@ -1340,6 +1362,10 @@ version = "0.2.0"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
+[[deps.Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
+
 [[deps.ProgressLogging]]
 deps = ["Logging", "SHA", "UUIDs"]
 git-tree-sha1 = "80d919dee55b9c50e8d9e2da5eeafff3fe58b539"
@@ -1928,6 +1954,7 @@ version = "3.5.0+0"
 # ╠═d3dc062e-79e5-4253-9715-ac3fae52ee3f
 # ╠═2a691b2e-8513-4ecc-b6fa-392bcdf86c96
 # ╠═d1848368-4802-441f-af2e-dcfa2e3ce030
+# ╠═f462f1e4-6bfe-42e6-a552-2aedf7d20dcd
 # ╠═d9fabcdd-2337-4ae5-b610-ba022d076064
 # ╠═1e0dedcf-ee29-41ab-bf48-03f3e5697d3a
 # ╠═27fa1fcc-716c-48b9-abbf-0aa26cfc5862
@@ -1942,7 +1969,8 @@ version = "3.5.0+0"
 # ╠═f5dbd657-f4ce-4b3e-92f9-9e76f3a25e95
 # ╟─013449b8-8c0f-48d1-adb2-7f839cd01fd8
 # ╠═a82bc112-ba4f-4be3-b79b-e2897773dd12
-# ╠═b02d3f2f-66f2-49e0-8480-3f6cbccec37a
+# ╟─fcee8a90-c00b-43c6-9953-dd5b490e7024
 # ╠═66a65ad0-331a-4a13-b964-be7c4e2eb103
+# ╠═5e0bed4d-6814-4b62-bf42-a2bf9ba9b1a3
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

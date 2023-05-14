@@ -69,6 +69,7 @@ function vertex_normals(V,F, face_area)
     ftov = FtoV(V,F, face_area)
     (ftov * N')'
 end
+vertex_normals(V,F) = vertex_normals(V,F, face_area(V,F))
 
 
 

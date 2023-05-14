@@ -16,7 +16,7 @@ end
 meshviz(mesh::Mesh; args...)  = meshviz(mesh.V, mesh.F; args...)
 meshviz(mesh::Shell; args...) = meshviz(mesh.X_k, mesh.F; args...)
 
-function meshviz(meshes::Vector{Mesh}; shift_coordinates=false, args...) 
+function meshviz(meshes::Vector; shift_coordinates=false, args...) 
     N = length(meshes)
     resolution = (600*N, 300* N)
     fig = Figure(resolution=resolution)
