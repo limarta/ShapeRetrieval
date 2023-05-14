@@ -1,3 +1,4 @@
+using JLD2
 
 # export readoff
 """
@@ -109,4 +110,38 @@ function diffusion_explain(dnb::DiffusionNetBlock{Spectral}, x, λ, ϕ, A, ∇_x
     grad_y = ∇_y * x_diffused
     field = cat(grad_x, grad_y;dims=3)
     x_diffused, field, dnb(x, λ, ϕ, A, ∇_x, ∇_y)
+end
+
+OPERATOR_CACHE_FOLDER = "cached_operators"
+function cached_operator_filename(mesh_name::String)
+    joinpath(OPERATOR_CACHE_FOLDER, "$(mesh_name).jdl2")
+end
+
+function save_operators_to_cache(mesh::Mesh, mesh_name::AbstractString)
+    filename = cached_operator_filename(mesh_name)
+
+    cot_laplacian, vertex_area, lambda, phi, grad_x, grad_y = get_operators(mesh)
+    jldsave(filename; cot_laplacian, vertex_area, lambda, phi, grad_x, grad_y)
+
+    cot_laplacian, vertex_area, lambda, phi, grad_x, grad_y
+end
+
+function load_cached_operators(mesh_name::AbstractString)
+    filename = cached_operator_filename(mesh_name)
+
+    jldopen(filename, "r") do f
+        return f["cot_laplacian"], f["vertex_area"], f["lambda"], f["phi"], f["grad_x"], f["grad_y"]
+    end
+end
+
+function cache_operators_for_folder(folder::String)
+    save_folder = joinpath(OPERATOR_CACHE_FOLDER, folder)
+    mkpath(save_folder)
+    for filepath in joinpath.(folder, readdir(folder))
+        println(filepath)
+        mesh = load_obj(filepath)
+        mesh = normalize_mesh(mesh)
+
+        save_operators_to_cache(mesh, filepath)
+    end
 end
