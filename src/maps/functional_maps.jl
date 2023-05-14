@@ -53,4 +53,5 @@ end
 
 # Convenience methods
 function smooth_correspondence_score(mesh_1, mesh_2, ϕ_1, ϕ_2, K, C, D, T)
+    1
 end
