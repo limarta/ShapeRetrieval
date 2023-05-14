@@ -97,7 +97,7 @@ function vertex_grad(V,F,N)
     ∇ = zeros(2,nv,nv)
     for i=1:nv # Naive
         # P(∇f) = Df -> Solve via least squares -> ∇ = (P'P)^{-1}P'D
-        neighbors = [f for f in eachcol(F) if i∈f]
+        neighbors = [f for f in eachcol(F) if i∈f] # HOT
         neighbors = Set(vcat(neighbors...))
         delete!(neighbors, i)
         neighbors = collect(neighbors)

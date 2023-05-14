@@ -21,25 +21,25 @@ function compute_correspondence(f,g, λ_1, λ_2, ϕ_1, ϕ_2)
     C
 end
 
-function smooth_deformation(V_1, V_2, F_1, F_2, N_1, N_2, ϕ_1, ϕ_2, P, D=nothing, T=nothing)
-    nv1 = size(V_1)[2]
-    nv2 = size(V_2)[2]
-    if D === nothing
-        D = rand(Float32, nv2, nv1)
+function optimize_deformation(S_1, S_2, f_1, f_2, P; C=nothing, T=nothing)
+    # Optimizes C (functional correspondence) and T (extrinsic shift)
+    if C === nothing
+        C = rand(Float32, S_2.K, S_1.K)
     end
     if T === nothing
-        # T = rand(Float32, )
+        T = rand(Float32, S_1.K, 3)
     end
-    # Computes the deformation+translation between vertices V_1 and V_2 given a correspondence matrix
+    # correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
 end
-function smooth_correspondence(V_1, V_2, F_1, F_2, N_1, N_2, ϕ_1, ϕ_2, D, T, C=nothing) 
-    nv1 = size(V_1)[2]
-    nv2 = size(V_2)[2]
-    if C === nothing
-        C = rand(Float32, nv2,nv1)
+
+function optimize_bijection(S_1, S_2, f_1, f_2, C, T; P) 
+    # Optimizes P (1-1 correspondence)
+    nv1 = size(S_1.V)[2]
+    nv2 = size(S_2.V)[2]
+    if P === nothing
+        P = rand(Float32, nv2, nv1)
     end
-    
-    # Perform gradient descent on D,T
+    # Perform sinkhorn iterations
 end
 
 function correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
@@ -59,9 +59,6 @@ function correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
     λ_arap = 1.0
     feat_error = sum((C*S_1.ϕ_k'*f_1 - S_2.ϕ_k' * f_2).^2)
     arap_error = 0
-    println("Error: ", error)
-    println("Feat error: ", feat_error)
-    println("Arap error: ", arap_error)
     error + λ_feat * feat_error +λ_arap * arap_error
 end
 function correspondence_score(S_1, S_2, f_1, f_2, P, C, T, V::Symbol)

@@ -70,15 +70,15 @@ md"""
 
 # ╔═╡ f5dbd657-f4ce-4b3e-92f9-9e76f3a25e95
 begin
-	bunny = SR.load_obj("./meshes/dragon.obj")
+	bunny = SR.load_obj("./meshes/bunny.obj")
 	bunny_1 = SR.normalize_area(bunny)
-	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
+	println("nv=$(bunny.nv) nf=$(bunny_1.nf) area=$(sum(bunny_1.vertex_area))")
 	bunny_2 = copy(bunny_1)
 
-	# k = 250
-	# L_1, A_1, λ_1, ϕ_1, ∇_x_1, ∇_y_1 = SR.get_operators(bunny_1;k=k);
-	# L_2, A_2, λ_2, ϕ_2, ∇_x_2, ∇_y_2 = SR.get_operators(bunny_2;k=k);
-	# fig = SR.meshviz([bunny, bunny_2], shift_coordinates=true)
+	k = 250
+	L_1, A_1, λ_1, ϕ_1, ∇_x_1, ∇_y_1 = SR.get_operators(bunny_1;k=k);
+	L_2, A_2, λ_2, ϕ_2, ∇_x_2, ∇_y_2 = SR.get_operators(bunny_2;k=k);
+	fig = SR.meshviz([bunny, bunny_2], shift_coordinates=true)
 end
 
 # ╔═╡ 013449b8-8c0f-48d1-adb2-7f839cd01fd8
@@ -112,10 +112,14 @@ let
 	fig = SR.meshviz([S_1, S_2], shift_coordinates=true)
 end
 
-# ╔═╡ 5e0bed4d-6814-4b62-bf42-a2bf9ba9b1a3
+# ╔═╡ b7e69d13-b433-4052-834a-9797dc84e304
 let
-	@btime SR.face_area($(bunny.V), $(bunny.F))
-	@btime SR.vertex_area($(bunny.V), $(bunny.F))
+	K = 12
+	S_1 = SR.shell_coordinates(bunny, K, ϕ_1)
+	S_2 = SR.shell_coordinates(bunny, K, ϕ_2)
+	f_1 = SR.hks(λ_1, ϕ_1, A_1, 1)
+	f_2 = SR.hks(λ_2, ϕ_2, A_2, 1)
+	SR.optimize_deformation(S_1, S_2, f_1, f_2, I)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1971,6 +1975,6 @@ version = "3.5.0+0"
 # ╠═a82bc112-ba4f-4be3-b79b-e2897773dd12
 # ╟─fcee8a90-c00b-43c6-9953-dd5b490e7024
 # ╠═66a65ad0-331a-4a13-b964-be7c4e2eb103
-# ╠═5e0bed4d-6814-4b62-bf42-a2bf9ba9b1a3
+# ╠═b7e69d13-b433-4052-834a-9797dc84e304
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

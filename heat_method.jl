@@ -67,7 +67,7 @@ md"""
 
 # ╔═╡ 444b0681-2847-4096-b240-92fc1edb3d52
 begin
-	bunny = SR.load_obj("./meshes/shrec/1.obj")
+	bunny = SR.load_obj("./meshes/dragon.obj")
 	bunny = SR.normalize_area(bunny)
 	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
