@@ -67,14 +67,14 @@ md"""
 
 # ╔═╡ f5dbd657-f4ce-4b3e-92f9-9e76f3a25e95
 begin
-	bunny = SR.load_obj("./meshes/gourd.obj")
+	bunny = SR.load_obj("./meshes/bunny.obj")
 	bunny_1 = SR.normalize_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
 	bunny_2 = copy(bunny)
 
 	k = 300
-	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny;k=k);
-	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny_2;k=k);
+	L_1, A_1, λ_1, ϕ_1, ∇_x_1, ∇_y_1 = SR.get_operators(bunny;k=k);
+	L_2, A_2, λ_2, ϕ_2, ∇_x_2, ∇_y_2 = SR.get_operators(bunny_2;k=k);
 	fig = SR.meshviz([bunny, bunny_2], shift_coordinates=true)
 end
 
@@ -85,15 +85,18 @@ Spectral Mesh
 
 # ╔═╡ a82bc112-ba4f-4be3-b79b-e2897773dd12
 let
-	K = 30
-	X = SR.smooth_spectral_decomposition(bunny, K, ϕ)
+	K = 10
+	X = SR.smooth_spectral_decomposition(bunny, K, ϕ_1)
 	spectral_bunny = SR.Mesh(X,bunny.F)
 	fig = SR.meshviz([bunny, spectral_bunny], shift_coordinates=true)
 end
 
 # ╔═╡ b02d3f2f-66f2-49e0-8480-3f6cbccec37a
 let
-	SR.smooth_correspondence_score(bunny, bunny_2,ϕ)
+	X_k = SR.shell_coordinates(bunny, 50, ϕ_1)
+	fig = SR.meshviz(X_k)
+	SR.viz_field!(X_k; linewidth=0.001, lengthscale=0.001, arrowsize=0.001)
+	fig
 end
 
 # ╔═╡ 66a65ad0-331a-4a13-b964-be7c4e2eb103

@@ -30,5 +30,6 @@ Mesh(V, F) = Mesh(V, F, normals(V,F))
 
 function Base.copy(mesh::Mesh)
     Mesh(copy(mesh.V), copy(mesh.F), copy(mesh.normals), copy(mesh.face_normals), copy(mesh.vertex_normals),
-        copy(mesh.face_area), copy(mesh.vertex_area), copy(mesh.FtoV), copy(mesh.cot_laplacian), mesh.nv, mesh.nf) 
+        copy(mesh.face_area), copy(mesh.vertex_area), copy(mesh.FtoV), 
+        copy(mesh.∇_x), copy(mesh.∇_y), copy(mesh.cot_laplacian), mesh.nv, mesh.nf) 
 end

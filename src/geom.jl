@@ -180,23 +180,6 @@ function get_operators(mesh::Mesh; k=200)
     mesh.cot_laplacian, convert.(Float32, mesh.vertex_area), λ, ϕ, grad_x, grad_y
 end
 
-function spectral_decomposition(mesh::Mesh, ϕ)
-    c = ϕ'*(mesh.vertex_area .* mesh.V')
-    real.(ϕ * c)
-end
-
-function smooth_spectral_decomposition(V, K, ϕ)
-    # c = ϕ' * (mesh.A .* V')
-    c = ϕ' * V'
-    decaying = [sigmoid(K-k) for k=1:size(ϕ)[2]]
-    damped_c = decaying .* c
-    real.(ϕ * damped_c)'
-end
-smooth_spectral_decomposition(mesh::Mesh, K::Int, ϕ) = smooth_spectral_decomposition(mesh.V, K, ϕ)
-
-function smooth_operator(V, ϕ)
-    decaying = [sigmoid(K-k) for k=1:size(ϕ)[2]]
-end
 
 
 export cot_laplacian

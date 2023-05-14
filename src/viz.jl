@@ -14,6 +14,8 @@ function meshviz(V,F; resolution=(900,900), shift_coordinates=false, args...)
     fig 
 end
 meshviz(mesh::Mesh; args...)  = meshviz(mesh.V, mesh.F; args...)
+meshviz(mesh::Shell; args...) = meshviz(mesh.X_k, mesh.F; args...)
+
 function meshviz(meshes::Vector{Mesh}; shift_coordinates=false, args...) 
     N = length(meshes)
     resolution = (600*N, 300* N)
@@ -56,6 +58,7 @@ function viz_field!(mesh::Mesh,field=nothing, field_type=:face; kwargs...)
     end
     viz_field!(base, field; kwargs...)
 end
+viz_field!(mesh::Shell; kwargs...) = viz_field!(mesh.X_k, mesh.n_k; kwargs...)
 
 function viz_point!(mesh::Mesh, id::Int; kwargs...)
     xyz = mesh.V[:,id]
@@ -100,8 +103,4 @@ function viz_grid(V,F, data; shift_coordinates=false, kwargs...)
         end
     end
     fig
-end
-
-function heatmap(C)
-
 end

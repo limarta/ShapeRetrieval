@@ -1,3 +1,10 @@
+struct Shell
+    X_k
+    ϕ_k
+    n_k
+    F
+end
+
 function compute_correspondence(f,g, λ_1, λ_2, ϕ_1, ϕ_2)
     # f, g are |V|×|C| 
     # Note: No regularization of entries
@@ -13,7 +20,7 @@ function compute_correspondence(f,g, λ_1, λ_2, ϕ_1, ϕ_2)
     C
 end
 
-function smooth_deformation(V_1, V_2, F_1, F_2, N_1, N_2, ϕ_1, ϕ_2, C, D=nothing, T=nothing)
+function smooth_deformation(V_1, V_2, F_1, F_2, N_1, N_2, ϕ_1, ϕ_2, P, D=nothing, T=nothing)
     nv1 = size(V_1)[2]
     nv2 = size(V_2)[2]
     if D === nothing
@@ -32,6 +39,10 @@ function smooth_correspondence(V_1, V_2, F_1, F_2, N_1, N_2, ϕ_1, ϕ_2, D, T, C
     end
     
     # Perform gradient descent on D,T
+end
+
+function smooth_correspondence(mesh_1, mesh_2, ϕ_1, ϕ_2, C)
+
 end
 function smooth_correspondence_score(f_1, f_2, V_1, V_2, F_1, F_2, N_1, N_2, ϕ_1, ϕ_2, C, D, T)
     # Assumes V_1 and V_2 are K-smooth and ϕ_1 and ϕ_2 are |V|×K
@@ -55,3 +66,35 @@ end
 function smooth_correspondence_score(mesh_1, mesh_2, ϕ_1, ϕ_2, K, C, D, T)
     1
 end
+
+
+function spectral_decomposition(V,K,ϕ)
+    ϕ = ϕ[:,1:K]
+    # c = ϕ'*(mesh.vertex_area .* mesh.V')
+    c = ϕ'*V'
+    real.(ϕ * c)
+end
+
+function smooth_spectral_decomposition(V, K, ϕ)
+    # c = ϕ' * (mesh.A .* V')
+    c = ϕ' * V'
+    decaying = [sigmoid(K-k) for k=1:size(ϕ)[2]]
+    damped_c = decaying .* c
+    real.(ϕ * damped_c)'
+end
+
+function shell_coordinates(V, F, A, K, ϕ)
+    X_k = smooth_spectral_decomposition(V, K, ϕ)
+    ϕ_k = ϕ[:,1:K]
+    n_k = vertex_normals(X_k, F,A)
+
+    X_k, ϕ_k, n_k
+    Shell(X_k, ϕ_k, n_k, F)
+end
+
+######################
+# Convenience Methods
+######################
+shell_coordinates(mesh::Mesh, K, ϕ) = shell_coordinates(mesh.V, mesh.F, mesh.face_area, K, ϕ)
+smooth_spectral_decomposition(mesh::Mesh, K::Int, ϕ) = smooth_spectral_decomposition(mesh.V, K, ϕ)
+spectral_decomposition(mesh::Mesh, K::Int, ϕ) = spectral_decomposition(mesh.V, K, ϕ)
