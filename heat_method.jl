@@ -61,9 +61,9 @@ md"""
 
 # ╔═╡ 444b0681-2847-4096-b240-92fc1edb3d52
 begin
-	bunny = SR.load_obj("./meshes/bunny.obj")
+	bunny = SR.load_obj("./meshes/gourd.obj")
 	bunny = SR.normalize_area(bunny)
-	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny,k=300);
+	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
 	λ_t, ϕ_t = eigen(Matrix(L))
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
 end
@@ -181,47 +181,6 @@ let
 end
   ╠═╡ =#
 
-# ╔═╡ a0bc09d9-a45d-4004-bf2d-52b16d05914a
-# ╠═╡ disabled = true
-#=╠═╡
-let
-	i = 1
-	M = diagm(A)
-	println(norm(L * ϕ[:,i] - λ[i]ϕ[:,i]))
-
-	println(λ)
-	println(λ_t)
-	display(ϕ)
-	display(ϕ_t)
-	println()
-
-	init = ones(bunny.nv)
-	init[1] = 10
-	println(ϕ' * init)
-	e_i = ϕ[:,1]
-	println()
-	t = 0
-	P = ϕ *((ϕ' * init ).* exp.(-t *λ))
-	display(P)
-	P_t = ϕ_t *((ϕ_t' * init ))
-	display(P_t)
-	K = 300
-	λ_p, ϕ_p = λ_t[1:K], ϕ[:,1:K]
-
-	P_p = ϕ_p *((ϕ_p' * init ))
-	display(P_p)
-
-	
-end
-  ╠═╡ =#
-
-# ╔═╡ 78f685d0-27bb-498d-88a4-6f44bfb49aa4
-let
-	i = 5
-	M = diagm(A)
-	println(norm(L * ϕ[:,i] - λ[i]*M*ϕ[:,i]))
-end
-
 # ╔═╡ 258801e7-e23d-4d48-a89f-3fcfcd6e07a2
 md"""
 Heat Signature Kernel
@@ -232,6 +191,26 @@ let
 	heat = SR.hks(λ, ϕ, A, 8)
 	println(size(heat))
 	fig = SR.meshviz(bunny, color=heat[:,4])
+end
+
+# ╔═╡ ca9cf948-a181-41ed-97c3-7806b2526865
+md"""
+Functional Correspondence
+"""
+
+# ╔═╡ 98f6c689-90f7-4a92-90a7-d10b5be1c277
+let
+	function v(C)
+		C = abs.(C)
+		C[C .< 0.2] .= NaN
+		# fig = Figure(resolution=(500, 500))
+		# ax  = Axis(fig[1,1])
+		# hm = heatmap(i, y, C)
+		heatmap(C)
+	end
+	heat = SR.hks(λ, ϕ, A, 16)
+	C = SR.compute_correspondence(heat, heat, λ, λ, ϕ, ϕ)
+	v(C)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -2059,9 +2038,9 @@ version = "3.5.0+0"
 # ╟─abfa93ea-e45a-4a51-8350-7aaa74a9f1ee
 # ╟─6e463ada-6e79-4f6a-87ab-57823eacff74
 # ╠═b75a7ff6-3c4b-4f1c-8c54-cf7cad1795c8
-# ╟─a0bc09d9-a45d-4004-bf2d-52b16d05914a
-# ╠═78f685d0-27bb-498d-88a4-6f44bfb49aa4
 # ╟─258801e7-e23d-4d48-a89f-3fcfcd6e07a2
 # ╠═fb9ed22e-f529-45bb-b800-e8d69c35c486
+# ╟─ca9cf948-a181-41ed-97c3-7806b2526865
+# ╠═98f6c689-90f7-4a92-90a7-d10b5be1c277
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
