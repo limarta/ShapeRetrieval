@@ -14,6 +14,23 @@ function meshviz(V,F; resolution=(900,900), shift_coordinates=false, args...)
     fig 
 end
 meshviz(mesh::Mesh; args...)  = meshviz(mesh.V, mesh.F; args...)
+function meshviz(meshes::Vector{Mesh}; shift_coordinates=false, args...) 
+    N = length(meshes)
+    resolution = (600*N, 300* N)
+    fig = Figure(resolution=resolution)
+    for i=1:N
+        ax = Axis3(fig[1,i], aspect=:data, elevation=0.0, azimuth=-π/2)
+        hidedecorations!(ax)
+        hidespines!(ax)
+        if shift_coordinates
+            V_new = wgl_coords(meshes[i].V)
+        else
+            V_new = meshes[i].V
+        end
+        mesh!(ax, V_new', meshes[i].F'; args...)
+    end
+    fig
+end
 
 function viz_field!(base, field;  shift_coordinates=false, kwargs...)
     arrow_args = Dict{Symbol, Any}()

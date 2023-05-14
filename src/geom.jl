@@ -90,13 +90,11 @@ function face_grad(mesh::Mesh)
     return ∇
 end
 
-function vertex_grad(mesh::Mesh)
-    # naive
-    V = mesh.V
-    F = mesh.F
-    frames = tangent_basis(mesh)
-    ∇ = zeros(2,mesh.nv,mesh.nv)
-    for i=1:mesh.nv
+function vertex_grad(V,F,N)
+    nv = size(V)[2]
+    frames = tangent_basis(V,F,N)
+    ∇ = zeros(2,nv,nv)
+    for i=1:nv # Naive
         # P(∇f) = Df -> Solve via least squares -> ∇ = (P'P)^{-1}P'D
         neighbors = [f for f in eachcol(F) if i∈f]
         neighbors = Set(vcat(neighbors...))
@@ -106,15 +104,15 @@ function vertex_grad(mesh::Mesh)
         center = V[:,i]
         edges = edges .- center
         proj_edges = embed_in_plane(frames[:,i,:], edges)'
-        D = zeros(size(neighbors)[1], mesh.nv)
+        D = zeros(size(neighbors)[1], nv)
         D[:,i] .= -1
         ind = CartesianIndex.(1:size(neighbors)[1], neighbors)
         D[ind] .= 1
         grad_i = proj_edges \ D
         ∇[:,:,i] = grad_i
     end
-    A = mesh.vertex_area
-    ∇[1,:,:]',  ∇[2,:,:]'
+    # A = mesh.vertex_area
+    sparse(∇[1,:,:]'),  sparse(∇[2,:,:]')
 end
 
 function embed_in_plane(frame, edges)
@@ -131,16 +129,17 @@ function project_to_plane(normal::AbstractMatrix, u::AbstractVector)
     u .- vdot(normal, u;dims=1) ./ sum(normal.^2; dims=1) .* normal
 end
 
-function tangent_basis(mesh::Mesh)
+function tangent_basis(V,F,N)
     # frame 3×|V|×2
-    N = vertex_normals(mesh)
+    # N - vertex normals
+    nv = size(V)[2]
     e_1 = [1.0, 0, 0]
     e_2 = [0, 1.0, 0]
     t_1 = project_to_plane(N, e_1)
     t_1 = t_1 ./ norm(t_1; dims=1)
     t_2 = project_to_plane(N, e_2)
     t_2 = t_2 ./ norm(t_2; dims=1)
-    frame = zeros(3,mesh.nv,2)
+    frame = zeros(3,nv,2)
     frame[:,:,1] = t_1
     frame[:,:,2] = t_2
     frame
@@ -166,6 +165,8 @@ normals(mesh::Mesh) = normals(mesh.V, mesh.F)
 normalize_mesh(mesh::Mesh) = normalize_mesh(mesh.V, mesh.F)
 vertex_area(mesh::Mesh) = vertex_area(mesh.V, mesh.F)
 vertex_normals(mesh::Mesh) = vertex_normals(mesh.V,mesh.F, mesh.face_area)
+vertex_grad(mesh::Mesh) = vertex_grad(mesh.V, mesh.F, mesh.vertex_normals)
+tangent_basis(mesh::Mesh) =  tangent_basis(mesh.V, mesh.F, mesh.vertex_normals)
 
 function normalize_area(mesh::Mesh)
     total_area = sum(mesh.face_area)
@@ -173,9 +174,9 @@ function normalize_area(mesh::Mesh)
 end
 function get_operators(mesh::Mesh; k=200)
     λ, ϕ = get_spectrum(mesh, k=k)
-    grad_x, grad_y = vertex_grad(mesh)
-    grad_x = sparse(convert.(Float32, grad_x))
-    grad_y = sparse(convert.(Float32, grad_y))
+    grad_x, grad_y = mesh.∇_x, mesh.∇_y
+    grad_x = convert.(Float32, grad_x)
+    grad_y = convert.(Float32, grad_y)
     mesh.cot_laplacian, convert.(Float32, mesh.vertex_area), λ, ϕ, grad_x, grad_y
 end
 
@@ -184,11 +185,17 @@ function spectral_decomposition(mesh::Mesh, ϕ)
     real.(ϕ * c)
 end
 
-function smooth_spectral_decomposition(mesh::Mesh, K::Int, ϕ)
-    c = ϕ'*(mesh.vertex_area .* mesh.V')
+function smooth_spectral_decomposition(V, K, ϕ)
+    # c = ϕ' * (mesh.A .* V')
+    c = ϕ' * V'
     decaying = [sigmoid(K-k) for k=1:size(ϕ)[2]]
     damped_c = decaying .* c
-    real.(ϕ * damped_c)
+    real.(ϕ * damped_c)'
+end
+smooth_spectral_decomposition(mesh::Mesh, K::Int, ϕ) = smooth_spectral_decomposition(mesh.V, K, ϕ)
+
+function smooth_operator(V, ϕ)
+    decaying = [sigmoid(K-k) for k=1:size(ϕ)[2]]
 end
 
 
