@@ -1,3 +1,5 @@
+using Rotations
+
 struct MeshSampler
     mesh::Mesh
     G
@@ -65,4 +67,14 @@ function connected_mesh_in_sphere(mesh::Mesh, point, radius)
         end
     end
     V_sampled .& visited_vertices, F_sampled .& visited_faces
+end
+
+function center_mesh(mesh::Mesh)
+    centroid = sum(eachcol(mesh.V)) / mesh.nv
+    Mesh(mesh.V .- centroid, mesh.F, mesh.normals)
+end
+
+function rotate_mesh_random(mesh::Mesh)
+    rotation = rand(QuatRotation)
+    Mesh(rotation * mesh.V, mesh.F)
 end
