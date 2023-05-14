@@ -84,3 +84,7 @@ function viz_grid(V,F, data; shift_coordinates=false, kwargs...)
     end
     fig
 end
+
+function heatmap(C)
+
+end
