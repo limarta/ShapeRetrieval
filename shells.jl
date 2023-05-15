@@ -4,46 +4,49 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ f5c7e762-9b5f-427b-a6e8-63efac459a35
+# ╔═╡ a684b906-a9c0-4d4f-b21e-5fdbd25d4e4d
 using WGLMakie
 
-# ╔═╡ b2504ee4-fcfd-47ff-892b-d73ba20428ea
+# ╔═╡ d3dc062e-79e5-4253-9715-ac3fae52ee3f
 using Arpack
 
-# ╔═╡ 03057105-fa63-4143-8316-09cbb290e790
+# ╔═╡ 2a691b2e-8513-4ecc-b6fa-392bcdf86c96
 using LinearAlgebra
 
-# ╔═╡ 47580825-37ab-4b34-80c4-5e7425eeeae6
+# ╔═╡ d1848368-4802-441f-af2e-dcfa2e3ce030
 using SparseArrays
 
-# ╔═╡ d107b69a-99c1-403a-ac42-92ecc0f524ec
+# ╔═╡ f462f1e4-6bfe-42e6-a552-2aedf7d20dcd
+using BenchmarkTools
+
+# ╔═╡ d9fabcdd-2337-4ae5-b610-ba022d076064
 using Flux
 
-# ╔═╡ e65035ee-f9be-420c-b504-4bd120b485c7
+# ╔═╡ 1e0dedcf-ee29-41ab-bf48-03f3e5697d3a
 using Zygote
 
-# ╔═╡ 22b51938-f488-4469-9015-2221ef771ff6
+# ╔═╡ 27fa1fcc-716c-48b9-abbf-0aa26cfc5862
 using NNlib
 
-# ╔═╡ 9cde1902-9c7f-40cb-9e89-d521eb05d0df
-using Rotations
-
-# ╔═╡ 4a52e208-8891-4184-abdc-dc449da84a56
-using JLD2
-
-# ╔═╡ 0629ec1a-b3ee-4ac5-9403-fd3591c1d077
+# ╔═╡ fb0b167f-a5e6-4483-a6dd-f3d1fe5a588e
 using DataStructures
 
-# ╔═╡ e41efaf3-b193-451f-893c-7d096c28a66a
+# ╔═╡ bae73b8f-23b9-43a4-96ef-8a69ce5082a8
+using JLD2
+
+# ╔═╡ dd563618-be55-4c6d-9f1f-10860c655753
+using Rotations
+
+# ╔═╡ dec8ba6a-7faa-455c-8959-6a74f645d6d1
 Threads.nthreads()
 
-# ╔═╡ d095560b-6169-4d1c-b600-bd6c437bbc73
+# ╔═╡ b6f3f4c0-f641-4350-a113-11f7428177bf
 WGLMakie.activate!()
 
-# ╔═╡ 7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
+# ╔═╡ 6f0343b8-2fc9-4611-add1-96615c7a09d0
 Makie.inline!(true)
 
-# ╔═╡ df42d23d-4bd9-48bc-a744-585ebc45b2f4
+# ╔═╡ 80513cfc-c6c5-4bbc-badf-3e657e037e17
 function __ingredients(path::String)
 	# this is from the Julia source code (evalfile in base/loading.jl)
 	# but with the modification that it returns the module instead of the last object
@@ -57,142 +60,73 @@ function __ingredients(path::String)
 	m
 end
 
-# ╔═╡ 61dca968-baa2-4b37-aa7e-b251014121bf
+# ╔═╡ da2648b2-45b5-4a8c-92ba-3d25baae5084
 SR = __ingredients("src/ShapeRetrieval.jl").ShapeRetrieval
 
-# ╔═╡ d262539a-b7b5-43a5-93e0-584badda7b9f
+# ╔═╡ a7f563de-31df-4ae1-b46d-f4143f86e200
 md"""
 ###### Load Mesh
 """
 
-# ╔═╡ 444b0681-2847-4096-b240-92fc1edb3d52
+# ╔═╡ f5dbd657-f4ce-4b3e-92f9-9e76f3a25e95
 begin
-	bunny = SR.load_obj("./meshes/dragon.obj")
-	bunny = SR.normalize_area(bunny)
-	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
-	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
+	bunny = SR.load_obj("./meshes/bunny.obj")
+	bunny_1 = SR.normalize_area(bunny)
+	println("nv=$(bunny.nv) nf=$(bunny_1.nf) area=$(sum(bunny_1.vertex_area))")
+	bunny_2 = copy(bunny_1)
+
+	k = 250
+	L_1, A_1, λ_1, ϕ_1, ∇_x_1, ∇_y_1 = SR.get_operators(bunny_1;k=k);
+	L_2, A_2, λ_2, ϕ_2, ∇_x_2, ∇_y_2 = SR.get_operators(bunny_2;k=k);
+	fig = SR.meshviz([bunny, bunny_2], shift_coordinates=true)
 end
 
-# ╔═╡ e3f1500b-017d-4d93-ade5-ad025626cf1c
+# ╔═╡ 013449b8-8c0f-48d1-adb2-7f839cd01fd8
 md"""
-##### Heat Diffusion by Iteration
+Spectral Mesh
 """
 
-# ╔═╡ c56694de-df2a-4b0b-b4cc-5fe696b79b5a
-# ╠═╡ disabled = true
-#=╠═╡
+# ╔═╡ a82bc112-ba4f-4be3-b79b-e2897773dd12
 let
-	heat_signal = zeros(bunny.nv)
-	heat_signal[[1, 2]] .= 1.0
-	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=100)
-	fig = SR.meshviz(bunny, color=bunny_heat)
-	fig
-end
-  ╠═╡ =#
-
-# ╔═╡ d6faf275-8cb4-4140-9d27-81e138f504a5
-md"""
-##### Heat Iteration with Spectrum
-"""
-
-# ╔═╡ a9d9609b-d8dd-4d0b-b03b-c371c7afa94d
-# ╠═╡ disabled = true
-#=╠═╡
-let
-	function myshowall(io, x, limit = false) 
-	  println(io, summary(x), ":")
-	  Base.print_matrix(IOContext(io, :limit => limit), x)
-	end
-	heat_init = ones(bunny.nv)
-	heat_init[1] = 10
-	println(λ)
-	# println(ϕ[1,:])
-	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 10)
-	myshowall(stdout, heat, false)
-	fig = SR.meshviz(bunny, color=heat)
-	fig
-end
-  ╠═╡ =#
-
-# ╔═╡ f4f66184-bd23-4477-859f-9c1629b5abab
-md"""
-##### Vectorizing Heat Diffusion
-"""
-
-# ╔═╡ a2005d9e-03c5-4950-bd57-e1c2e7beafef
-let
+	K = 10
+	X = SR.smooth_spectral_decomposition(bunny, K, ϕ_1)
+	spectral_bunny = SR.Mesh(X,bunny.F)
+	fig = SR.meshviz([bunny, spectral_bunny], shift_coordinates=true)
 end
 
-# ╔═╡ 46ad806d-ce7c-4f25-82d4-b26254365977
+# ╔═╡ fcee8a90-c00b-43c6-9953-dd5b490e7024
 md"""
-###### Vertex Normals and Tangent Plane
+Ideal Correspondence
 """
 
-# ╔═╡ d803fa5e-b0a3-4937-b796-93412067f2cb
+# ╔═╡ 66a65ad0-331a-4a13-b964-be7c4e2eb103
 let
-	frames = SR.tangent_basis(bunny.V, bunny.F, bunny.vertex_normals)
-	fig = SR.meshviz(bunny, color=:cyan)
-	SR.viz_field!(bunny, bunny.vertex_normals, :vertex, lengthscale=0.005, linewidth=0.005)
-	SR.viz_field!(bunny, frames[:,:,1], :vertex,color=:lime, lengthscale=0.01, linewidth=0.005)
-	SR.viz_field!(bunny, frames[:,:,2], :vertex, color=:lime, lengthscale=0.01, linewidth=0.005)
-	fig
+	K = 12
+	S_1 = SR.shell_coordinates(bunny, K, ϕ_1)
+	S_2 = SR.shell_coordinates(bunny, K, ϕ_2)
+	f_1 = SR.hks(λ_1, ϕ_1, A_1, 1)
+	f_2 = SR.hks(λ_2, ϕ_2, A_2, 1)
+	C = diagm(sign.(ϕ_1[1,1:K] .* sign.(ϕ_2[1,1:K]))) # Hackish but for demonstration
+	e = SR.correspondence_score(S_1, S_2, f_1, f_2, I, C, zeros(K,3))
+	display(e)
+	fig = SR.meshviz([S_1, S_2], shift_coordinates=true)
 end
 
-# ╔═╡ 6f6fc384-20a3-4eab-9990-5197611a43c5
-md"""
-##### Visualizing Vertex-Based Gradient Field
-"""
-
-# ╔═╡ 7c94da05-1768-49ba-9d90-486b3ec19bcf
+# ╔═╡ b7e69d13-b433-4052-834a-9797dc84e304
 let
-	heat_init = bunny.V[3,:]
-	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 3)
-	heat_grad_x = ∇_x * heat
-	heat_grad_y = ∇_y * heat
-	heat_field_coordinates = [heat_grad_x ;; heat_grad_y]'
-	heat_field = SR.world_coordinates(bunny, heat_field_coordinates)
-	heat_field = SR.normalize_vectors(heat_field, dims=1)
-	fig = SR.meshviz(bunny, color=heat, resolution=(1000,1000))
-	SR.viz_field!(bunny, heat_field, :vertex,color=:orange, lengthscale=0.01, arrowsize=.005, linewidth=0.001)
-	fig
-end
-
-# ╔═╡ 258801e7-e23d-4d48-a89f-3fcfcd6e07a2
-md"""
-Heat Signature Kernel
-"""
-
-# ╔═╡ fb9ed22e-f529-45bb-b800-e8d69c35c486
-let
-	heat = SR.hks(λ, ϕ, A, 16)
-	println(size(heat))
-	fig = SR.meshviz(bunny, color=heat[:,16])
-end
-
-# ╔═╡ ca9cf948-a181-41ed-97c3-7806b2526865
-md"""
-Functional Correspondence
-"""
-
-# ╔═╡ 98f6c689-90f7-4a92-90a7-d10b5be1c277
-let
-	function v(C)
-		C = abs.(C)
-		C[C .< 0.2] .= NaN
-		# fig = Figure(resolution=(500, 500))
-		# ax  = Axis(fig[1,1])
-		# hm = heatmap(i, y, C)
-		heatmap(C)
-	end
-	heat = SR.hks(λ, ϕ, A, 16)
-	C = SR.compute_correspondence(heat, heat, λ, λ, ϕ, ϕ)
-	v(C)
+	K = 12
+	S_1 = SR.shell_coordinates(bunny, K, ϕ_1)
+	S_2 = SR.shell_coordinates(bunny, K, ϕ_2)
+	f_1 = SR.hks(λ_1, ϕ_1, A_1, 1)
+	f_2 = SR.hks(λ_2, ϕ_2, A_2, 1)
+	SR.optimize_deformation(S_1, S_2, f_1, f_2, I)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
@@ -205,8 +139,9 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 Arpack = "~0.5.4"
+BenchmarkTools = "~1.3.2"
 DataStructures = "~0.18.13"
-Flux = "~0.13.15"
+Flux = "~0.13.16"
 JLD2 = "~0.4.31"
 NNlib = "~0.8.20"
 Rotations = "~1.4.0"
@@ -220,7 +155,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0"
 manifest_format = "2.0"
-project_hash = "2027662e2866016763832edddeb58dea25f12459"
+project_hash = "3287c0d26ce074ead6847daff9fbcc81280af521"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -239,15 +174,15 @@ version = "0.4.4"
 
 [[deps.Accessors]]
 deps = ["Compat", "CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "LinearAlgebra", "MacroTools", "Requires", "Test"]
-git-tree-sha1 = "c7dddee3f32ceac12abd9a21cd0c4cb489f230d2"
+git-tree-sha1 = "a4f8669e46c8cdf68661fe6bb0f7b89f51dd23cf"
 uuid = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
-version = "0.1.29"
+version = "0.1.30"
 
     [deps.Accessors.extensions]
-    AxisKeysExt = "AxisKeys"
-    IntervalSetsExt = "IntervalSets"
-    StaticArraysExt = "StaticArrays"
-    StructArraysExt = "StructArrays"
+    AccessorsAxisKeysExt = "AxisKeys"
+    AccessorsIntervalSetsExt = "IntervalSets"
+    AccessorsStaticArraysExt = "StaticArrays"
+    AccessorsStructArraysExt = "StructArrays"
 
     [deps.Accessors.weakdeps]
     AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
@@ -339,6 +274,12 @@ git-tree-sha1 = "aebf55e6d7795e02ca500a689d326ac979aaf89e"
 uuid = "9718e550-a3fa-408a-8086-8db961cd8217"
 version = "0.1.1"
 
+[[deps.BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
+git-tree-sha1 = "d9a9701b899b30332bbcb3e1679c41cce81fb0e8"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "1.3.2"
+
 [[deps.BitFlags]]
 git-tree-sha1 = "43b1a4a8f797c1cddadf60499a8a077d4af2cd2d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
@@ -408,9 +349,9 @@ version = "1.49.0"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "c6d890a52d2c4d55d326439580c3b8d0875a77d9"
+git-tree-sha1 = "e30f2f4e20f7f186dc36529910beaedc60cfa644"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.15.7"
+version = "1.16.0"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -476,20 +417,20 @@ version = "0.1.1"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
-git-tree-sha1 = "b306df2650947e9eb100ec125ff8c65ca2053d30"
+git-tree-sha1 = "96d823b94ba8d187a6d8f0826e731195a74b90e9"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
-version = "2.1.1"
+version = "2.2.0"
 
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "89a9db8d28102b094992472d333674bd1a83ce2a"
+git-tree-sha1 = "738fec4d684a9a6ee9598a8bfee305b26831f28c"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
-version = "1.5.1"
+version = "1.5.2"
 weakdeps = ["IntervalSets", "StaticArrays"]
 
     [deps.ConstructionBase.extensions]
-    IntervalSetsExt = "IntervalSets"
-    StaticArraysExt = "StaticArrays"
+    ConstructionBaseIntervalSetsExt = "IntervalSets"
+    ConstructionBaseStaticArraysExt = "StaticArrays"
 
 [[deps.ContextVariablesX]]
 deps = ["Compat", "Logging", "UUIDs"]
@@ -556,10 +497,10 @@ deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[deps.Distributions]]
-deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns", "Test"]
-git-tree-sha1 = "180538ef4e3aa02b01413055a7a9e8b6047663e1"
+deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns", "Test"]
+git-tree-sha1 = "eead66061583b6807652281c0fbf291d7a9dc497"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.25.88"
+version = "0.25.90"
 
     [deps.Distributions.extensions]
     DistributionsChainRulesCoreExt = "ChainRulesCore"
@@ -666,10 +607,10 @@ uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.4"
 
 [[deps.Flux]]
-deps = ["Adapt", "CUDA", "ChainRulesCore", "Functors", "LinearAlgebra", "MLUtils", "MacroTools", "NNlib", "NNlibCUDA", "OneHotArrays", "Optimisers", "Preferences", "ProgressLogging", "Random", "Reexport", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "Zygote", "cuDNN"]
-git-tree-sha1 = "3f6f32ec0bfd80be0cb65907cf74ec796a632012"
+deps = ["Adapt", "CUDA", "ChainRulesCore", "Functors", "LinearAlgebra", "MLUtils", "MacroTools", "NNlib", "NNlibCUDA", "OneHotArrays", "Optimisers", "Preferences", "ProgressLogging", "Random", "Reexport", "SparseArrays", "SpecialFunctions", "Statistics", "Zygote", "cuDNN"]
+git-tree-sha1 = "64005071944bae14fc145661f617eb68b339189c"
 uuid = "587475ba-b771-5e3f-ad9e-33799f191a9c"
-version = "0.13.15"
+version = "0.13.16"
 
     [deps.Flux.extensions]
     AMDGPUExt = "AMDGPU"
@@ -811,9 +752,9 @@ version = "1.0.2"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
-git-tree-sha1 = "69182f9a2d6add3736b7a06ab6416aafdeec2196"
+git-tree-sha1 = "42c6b37c6a2242cb646a1dd5518631db0be9b967"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "1.8.0"
+version = "1.8.1"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
@@ -823,9 +764,9 @@ version = "2.8.1+1"
 
 [[deps.HypergeometricFunctions]]
 deps = ["DualNumbers", "LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
-git-tree-sha1 = "432b5b03176f8182bd6841fbfc42c718506a2d5f"
+git-tree-sha1 = "84204eae2dd237500835990bcade263e27674a93"
 uuid = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
-version = "0.3.15"
+version = "0.3.16"
 
 [[deps.Hyperscript]]
 deps = ["Test"]
@@ -959,9 +900,9 @@ version = "0.21.4"
 
 [[deps.JSServe]]
 deps = ["Base64", "CodecZlib", "Colors", "Dates", "Deno_jll", "HTTP", "Hyperscript", "LinearAlgebra", "Markdown", "MsgPack", "Observables", "RelocatableFolders", "SHA", "Sockets", "Tables", "Test", "ThreadPools", "URIs", "UUIDs", "WidgetsBase"]
-git-tree-sha1 = "06066956d58509c94e9399706816397cc53d2e88"
+git-tree-sha1 = "fc24eb61515fdb49f4702a2a8b620020fff158ca"
 uuid = "824d6782-a2ef-11e9-3a09-e5662e0c26f9"
-version = "2.2.1"
+version = "2.2.2"
 
 [[deps.JpegTurbo]]
 deps = ["CEnum", "FileIO", "ImageCore", "JpegTurbo_jll", "TOML"]
@@ -1308,9 +1249,9 @@ version = "0.8.1+0"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
-git-tree-sha1 = "7fb975217aea8f1bb360cf1dde70bad2530622d2"
+git-tree-sha1 = "51901a49222b09e3743c65b8847687ae5fc78eb2"
 uuid = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
-version = "1.4.0"
+version = "1.4.1"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1406,15 +1347,15 @@ version = "0.1.2"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
-git-tree-sha1 = "2e47054ffe7d0a8872e977c0d09eb4b3d162ebde"
+git-tree-sha1 = "259e206946c293698122f63e2b513a7c99a244e8"
 uuid = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
-version = "1.0.2"
+version = "1.1.1"
 
 [[deps.Preferences]]
 deps = ["TOML"]
-git-tree-sha1 = "47e5f437cc0e7ef2ce8406ce1e7e24d44915f88d"
+git-tree-sha1 = "7eb1686b4f04b82f96ed7a4ea5890a4f0c7a09f1"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.3.0"
+version = "1.4.0"
 
 [[deps.PrettyPrint]]
 git-tree-sha1 = "632eb4abab3449ab30c5e1afaa874f0b98b586e4"
@@ -1424,6 +1365,10 @@ version = "0.2.0"
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[deps.Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 
 [[deps.ProgressLogging]]
 deps = ["Logging", "SHA", "UUIDs"]
@@ -1673,9 +1618,9 @@ version = "0.1.1"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "StaticArraysCore", "Statistics"]
-git-tree-sha1 = "fd9a77cfd87116a27b2121c1988045f428b35a36"
+git-tree-sha1 = "c262c8e978048c2b095be1672c9bee55b4619521"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.5.22"
+version = "1.5.24"
 
 [[deps.StaticArraysCore]]
 git-tree-sha1 = "6b7ba252635a5eff6a0b0664a41ee140a1c9e72a"
@@ -1783,9 +1728,9 @@ version = "0.9.13"
 
 [[deps.Transducers]]
 deps = ["Adapt", "ArgCheck", "BangBang", "Baselet", "CompositionsBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "MicroCollections", "Requires", "Setfield", "SplittablesBase", "Tables"]
-git-tree-sha1 = "c42fa452a60f022e9e087823b47e5a5f8adc53d5"
+git-tree-sha1 = "25358a5f2384c490e98abd565ed321ffae2cbb37"
 uuid = "28d57a85-8fef-5791-bfe6-a80928e7c999"
-version = "0.4.75"
+version = "0.4.76"
 
 [[deps.TriplotBase]]
 git-tree-sha1 = "4d4ed7f294cda19382ff7de4c137d24d16adc89b"
@@ -2008,36 +1953,28 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═e41efaf3-b193-451f-893c-7d096c28a66a
-# ╠═f5c7e762-9b5f-427b-a6e8-63efac459a35
-# ╠═b2504ee4-fcfd-47ff-892b-d73ba20428ea
-# ╠═03057105-fa63-4143-8316-09cbb290e790
-# ╠═47580825-37ab-4b34-80c4-5e7425eeeae6
-# ╠═d107b69a-99c1-403a-ac42-92ecc0f524ec
-# ╠═e65035ee-f9be-420c-b504-4bd120b485c7
-# ╠═22b51938-f488-4469-9015-2221ef771ff6
-# ╠═9cde1902-9c7f-40cb-9e89-d521eb05d0df
-# ╠═4a52e208-8891-4184-abdc-dc449da84a56
-# ╠═0629ec1a-b3ee-4ac5-9403-fd3591c1d077
-# ╠═d095560b-6169-4d1c-b600-bd6c437bbc73
-# ╠═7f7be8ca-679b-4515-8fe6-1b58a4bbb19c
-# ╟─df42d23d-4bd9-48bc-a744-585ebc45b2f4
-# ╠═61dca968-baa2-4b37-aa7e-b251014121bf
-# ╟─d262539a-b7b5-43a5-93e0-584badda7b9f
-# ╠═444b0681-2847-4096-b240-92fc1edb3d52
-# ╟─e3f1500b-017d-4d93-ade5-ad025626cf1c
-# ╟─c56694de-df2a-4b0b-b4cc-5fe696b79b5a
-# ╟─d6faf275-8cb4-4140-9d27-81e138f504a5
-# ╟─a9d9609b-d8dd-4d0b-b03b-c371c7afa94d
-# ╟─f4f66184-bd23-4477-859f-9c1629b5abab
-# ╠═a2005d9e-03c5-4950-bd57-e1c2e7beafef
-# ╟─46ad806d-ce7c-4f25-82d4-b26254365977
-# ╠═d803fa5e-b0a3-4937-b796-93412067f2cb
-# ╟─6f6fc384-20a3-4eab-9990-5197611a43c5
-# ╠═7c94da05-1768-49ba-9d90-486b3ec19bcf
-# ╟─258801e7-e23d-4d48-a89f-3fcfcd6e07a2
-# ╠═fb9ed22e-f529-45bb-b800-e8d69c35c486
-# ╟─ca9cf948-a181-41ed-97c3-7806b2526865
-# ╠═98f6c689-90f7-4a92-90a7-d10b5be1c277
+# ╠═dec8ba6a-7faa-455c-8959-6a74f645d6d1
+# ╠═a684b906-a9c0-4d4f-b21e-5fdbd25d4e4d
+# ╠═d3dc062e-79e5-4253-9715-ac3fae52ee3f
+# ╠═2a691b2e-8513-4ecc-b6fa-392bcdf86c96
+# ╠═d1848368-4802-441f-af2e-dcfa2e3ce030
+# ╠═f462f1e4-6bfe-42e6-a552-2aedf7d20dcd
+# ╠═d9fabcdd-2337-4ae5-b610-ba022d076064
+# ╠═1e0dedcf-ee29-41ab-bf48-03f3e5697d3a
+# ╠═27fa1fcc-716c-48b9-abbf-0aa26cfc5862
+# ╠═fb0b167f-a5e6-4483-a6dd-f3d1fe5a588e
+# ╠═bae73b8f-23b9-43a4-96ef-8a69ce5082a8
+# ╠═dd563618-be55-4c6d-9f1f-10860c655753
+# ╠═b6f3f4c0-f641-4350-a113-11f7428177bf
+# ╠═6f0343b8-2fc9-4611-add1-96615c7a09d0
+# ╟─80513cfc-c6c5-4bbc-badf-3e657e037e17
+# ╠═da2648b2-45b5-4a8c-92ba-3d25baae5084
+# ╟─a7f563de-31df-4ae1-b46d-f4143f86e200
+# ╠═f5dbd657-f4ce-4b3e-92f9-9e76f3a25e95
+# ╟─013449b8-8c0f-48d1-adb2-7f839cd01fd8
+# ╠═a82bc112-ba4f-4be3-b79b-e2897773dd12
+# ╟─fcee8a90-c00b-43c6-9953-dd5b490e7024
+# ╠═66a65ad0-331a-4a13-b964-be7c4e2eb103
+# ╠═b7e69d13-b433-4052-834a-9797dc84e304
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
