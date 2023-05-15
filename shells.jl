@@ -120,6 +120,24 @@ let
 	f_1 = SR.hks(λ_1, ϕ_1, A_1, 1)
 	f_2 = SR.hks(λ_2, ϕ_2, A_2, 1)
 	SR.optimize_deformation(S_1, S_2, f_1, f_2, I)
+	
+	function optimize_deformation(S_1, S_2, f_1, f_2, P; C=nothing, T=nothing)
+    # Optimizes C (functional correspondence) and T (extrinsic shift)
+	    if C === nothing
+	        C = rand(Float32, S_2.K, S_1.K)
+	    end
+	    if T === nothing
+	        T = rand(Float32, S_1.K, 3)
+	    end
+		alpha = 0.001
+		for i=1:300
+			grad = gradient(SR.correspondence_score, S_1, S_2, f_1, f_2, P, C, T)
+			println(SR.correspondence_score(S_1, S_2, f_1, f_2, P, C, T))
+			C -= alpha * grad[6]
+			T -= alpha * grad[7]
+		end
+	end
+	# optimize_deformation(S_1, S_2, f_1, f_2, I)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001

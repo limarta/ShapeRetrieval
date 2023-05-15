@@ -29,6 +29,9 @@ function optimize_deformation(S_1, S_2, f_1, f_2, P; C=nothing, T=nothing)
     if T === nothing
         T = rand(Float32, S_1.K, 3)
     end
+    for i=1:100
+        grad = gradient(correspondence_score, S_1, S_2, f_1, f_2, P, C, T)
+    end
     # correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
 end
 
@@ -44,7 +47,6 @@ end
 
 function correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
     # Assumes V_1 and V_2 are K-smooth and ϕ_1 and ϕ_2 are |V|×K
-	# println(size(S_1.ϕ_k * T)'))
     X_k_new = S_1.V + (S_1.ϕ_k * T)'
     ϕ_k_new = S_1.ϕ_k * C'
     n_k_new = vertex_normals(X_k_new, S_1.F) # compute normals from V_1
@@ -52,15 +54,9 @@ function correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
     Y_k = (P * X_k_new')'
     n_y_k = (P * n_k_new')'
 	
-    error = sum((S_2.V - Y_k).^2) + 
-	sum((S_2.ϕ_k - ϕ_k_new).^2) + 
-	sum((S_2.n_k - n_y_k).^2)
-    λ_feat = 1.0
-    λ_arap = 1.0
-    feat_error = sum((C*S_1.ϕ_k'*f_1 - S_2.ϕ_k' * f_2).^2)
-    arap_error = 0
-    error + λ_feat * feat_error +λ_arap * arap_error
+    error = sum((S_2.V - Y_k).^2) + sum((S_2.ϕ_k - ϕ_k_new).^2) + sum((S_2.n_k - n_y_k).^2) 
 end
+
 function correspondence_score(S_1, S_2, f_1, f_2, P, C, T, V::Symbol)
     X_k_new = S_1.V + (S_1.ϕ_k * T)'
     ϕ_k_new = S_1.ϕ_k * C'

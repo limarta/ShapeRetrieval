@@ -1,5 +1,3 @@
-using DataStructures
-
 mutable struct Mesh
     V::Matrix  # 3×|V|
     F::Matrix{Int} # 3×|F|
@@ -21,7 +19,7 @@ function Mesh(V,F,N)
     vert_A = vertex_area(V,F)
     ftov = FtoV(V,F,A)
     face_N = normals(V,F)
-    vert_N = vertex_normals(V,F,A)
+    vert_N = vertex_normals(V,F)
     ∇_x, ∇_y = vertex_grad(V,F,vert_N)
     L = cot_laplacian(V,F)
     Mesh(V,F, N, face_N, vert_N, A, vert_A, ftov, ∇_x, ∇_y, L, size(V)[2], size(F)[2])

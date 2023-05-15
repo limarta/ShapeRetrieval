@@ -67,7 +67,7 @@ md"""
 
 # ╔═╡ 444b0681-2847-4096-b240-92fc1edb3d52
 begin
-	bunny = SR.load_obj("./meshes/dragon.obj")
+	bunny = SR.load_obj("./meshes/gourd.obj")
 	bunny = SR.normalize_area(bunny)
 	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
@@ -132,7 +132,7 @@ md"""
 let
 	frames = SR.tangent_basis(bunny.V, bunny.F, bunny.vertex_normals)
 	fig = SR.meshviz(bunny, color=:cyan)
-	SR.viz_field!(bunny, bunny.vertex_normals, :vertex, lengthscale=0.005, linewidth=0.005)
+	SR.viz_field!(bunny, bunny.vertex_normals, :vertex, lengthscale=0.05, linewidth=0.005)
 	SR.viz_field!(bunny, frames[:,:,1], :vertex,color=:lime, lengthscale=0.01, linewidth=0.005)
 	SR.viz_field!(bunny, frames[:,:,2], :vertex, color=:lime, lengthscale=0.01, linewidth=0.005)
 	fig

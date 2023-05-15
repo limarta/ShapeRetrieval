@@ -3,6 +3,7 @@ module ShapeRetrieval
 using LinearAlgebra
 using SparseArrays
 using Arpack
+using DataStructures
 
 vdot(x,y; dims=1) = sum(x .* y, dims=dims)
 multicross(x,y) = reduce(hcat, cross.(eachcol(x), eachcol(y)))

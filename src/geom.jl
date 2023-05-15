@@ -64,40 +64,15 @@ function vertex_area(V,F)
     return B
 end
 
-function vertex_normals(V,F, face_area)
-    N = normals(V,F)
-    ftov = FtoV(V,F, face_area)
-    oldN = (ftov * N')'
-
+function vertex_normals(V,F)
     A = area_normals(V, F)
     n = zero(V)
-
-    # println(size(A))
-    # println(A[:, 1])
-    # println(A[1])
     for (i, f) in enumerate(eachcol(F))
         for v in f
             n[:, v] += A[:, i]
         end
     end
-
-    # lengths = normalize.(eachcol(n))'
-    # println(size(lengths))
-    # println(size(n))
-
     normalize!.(eachcol(n))
-    normalize!.(eachcol(oldN))
-
-    println("START BRUH")
-
-    println(typeof(oldN))
-    println(size(n))
-    println(size(oldN))
-    println(sqrt(sum((n - oldN).^ 2)))
-    # println(oldN[:, 1])
-    # println(n[:, 1])
-
-    println("END BRUH")
     return n
 end
 
@@ -194,7 +169,7 @@ FtoV(mesh::Mesh) = FtoV(mesh.V, mesh.F, face_area(mesh))
 normals(mesh::Mesh) = normals(mesh.V, mesh.F)
 normalize_mesh(mesh::Mesh) = normalize_mesh(mesh.V, mesh.F)
 vertex_area(mesh::Mesh) = vertex_area(mesh.V, mesh.F)
-vertex_normals(mesh::Mesh) = vertex_normals(mesh.V,mesh.F, mesh.face_area)
+vertex_normals(mesh::Mesh) = vertex_normals(mesh.V,mesh.F)
 vertex_grad(mesh::Mesh) = vertex_grad(mesh.V, mesh.F, mesh.vertex_normals)
 tangent_basis(mesh::Mesh) =  tangent_basis(mesh.V, mesh.F, mesh.vertex_normals)
 
