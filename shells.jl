@@ -73,7 +73,7 @@ md"""
 
 # ╔═╡ f5dbd657-f4ce-4b3e-92f9-9e76f3a25e95
 begin
-	bunny = SR.load_obj("./meshes/bunny.obj")
+	bunny = SR.load_obj("./meshes/shrec/1.obj")
 	bunny_1 = SR.normalize_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny_1.nf) area=$(sum(bunny_1.vertex_area))")
 	bunny_2 = copy(bunny_1)
@@ -124,16 +124,14 @@ end
 
 # ╔═╡ b7e69d13-b433-4052-834a-9797dc84e304
 let
-	K = 12
+	K = 30
 	S_1 = SR.shell_coordinates(bunny_1, K, ϕ_1)
 	S_2 = SR.shell_coordinates(bunny_2, K, ϕ_2)
 	f_1 = SR.hks(λ_1, ϕ_1, A_1, 1)
 	f_2 = SR.hks(λ_2, ϕ_2, A_2, 1)
 	τ = SR.compute_tau(S_1, S_2, I)
-	V_new, F = SR.apply_tau(S_1, τ)
-	new_bunny = SR.Mesh(V_new, F)
-	fig = SR.meshviz([S_1, S_2, new_bunny])
-	# optimize_deformation(S_1, S_2, f_1, f_2, I)
+	S_new = SR.apply_tau(S_1, τ)
+	fig = SR.meshviz([S_1, S_2, S_new])
 end
 
 # ╔═╡ 37dace15-0deb-46f7-983f-df00649eada3
@@ -143,12 +141,13 @@ Sinkhorn Step
 
 # ╔═╡ 48851664-318e-4f85-9484-6c107fc707bc
 let
-	A = rand(Float32, 4, 2000)
-	B = rand(Float32, 4, 2000)
-	@time d = SR.dist_mat(A,B)
-	@time p, p_adj =SR.sinkhorn(d, 0.4, 10)
-	display(p)
-	display(p_adj)
+	K = 14
+	S_1 = SR.shell_coordinates(bunny_1, K, ϕ_1)
+	S_2 = SR.shell_coordinates(bunny_2, K, ϕ_2)
+	τ = SR.compute_tau(S_1, S_2, I)
+	S_new = SR.apply_tau(S_1, τ)
+	@time P, P_adj = SR.feat_correspondence(S_new, S_2, 0.01, 10)
+	display(P)
 end
 
 # ╔═╡ 6b862a5c-84fe-4074-aebf-c3deec3047a6

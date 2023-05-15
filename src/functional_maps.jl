@@ -5,6 +5,17 @@ struct Shell
     F
     K::Int
 end
+function Shell(S, C, T)
+    X_k_new = S.V + (S_1.ϕ_k * T)'
+    ϕ_k_new = C * S_1.ϕ_k'
+    n_k_new = vertex_normals(X_k_new, S_1.F)
+    Shell(X_k_new, ϕ_k_new, n_k_new, S.F, S.K)
+end 
+function apply_tau(S,T)
+    X_k_new = S.V + (S.ϕ_k * T)'
+    n_k_new = vertex_normals(X_k_new, S.F)
+    Shell(X_k_new, S.ϕ_k , n_k_new, S.F, S.K)
+end
 
 # P: Y->X; P^T:X->Y
 function compute_correspondence(S_1, S_2, f_1, f_2, P)
@@ -35,17 +46,14 @@ function compute_tau(S_1, S_2, P)
     A \ res
 end
 
-function apply_tau(S, T)
-    V = (S.V' + S.ϕ_k * T)'
-    V, S.F
+function feat_correspondence(S_1, S_2, sigma=0.3, N=10)
+    X = [S_1.V' S_1.n_k']
+    Y = [S_2.V' S_2.n_k']
+    d = dist_mat(X, Y)
+    sinkhorn(d, sigma, N)
 end
 
-function feat_correspondence(S_1, S_2, P) 
-    d = dist_mat(S_1.V, S_2.V)
-    sinkhorn(d, a)
-end
-
-function sinkhorn(d, sigma=1.0, N=10)
+function sinkhorn(d, sigma, N)
     # normalize distances by average
     # ϵ = 2*sigma^2 
     d = d / mean(d)
@@ -69,6 +77,7 @@ function dist_mat(x, y)
     v_y = sum(y .^2; dims=1)
     return d .+ v_x' .+ v_y
 end
+dist_mat(x::Shell, y::Shell) = dist_mat(x.V, y.V)
 
 function correspondence_score(S_1, S_2, f_1, f_2, P, C, T, a)
     # P - 1-to-1 correspondence
