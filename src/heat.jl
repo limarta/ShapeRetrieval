@@ -45,4 +45,4 @@ function hks(λ, ϕ, A, t)
     diag(h)
 end
 
-hks(λ, ϕ, A, n::Int) = hcat([hks(λ, ϕ, A, 1.01f0^t) for t=0:(n-1) ]...) 
+hks(λ, ϕ, A, n::Int) = hcat([hks(λ, ϕ, A, 1.5f0^t) for t=-n:0]...) 

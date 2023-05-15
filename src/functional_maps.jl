@@ -6,7 +6,7 @@ struct Shell
     K::Int
 end
 
-function compute_correspondence(f,g, λ_1, λ_2, ϕ_1, ϕ_2)
+function compute_fm(f,g, λ_1, λ_2, ϕ_1, ϕ_2)
     # f, g are |V|×|C| 
     # Note: No regularization of entries
     A = ϕ_1' * f
@@ -21,18 +21,23 @@ function compute_correspondence(f,g, λ_1, λ_2, ϕ_1, ϕ_2)
     C
 end
 
+# P: Y->X; P^T:X->Y
 function optimize_deformation(S_1, S_2, f_1, f_2, P; C=nothing, T=nothing)
     # Optimizes C (functional correspondence) and T (extrinsic shift)
-    if C === nothing
-        C = rand(Float32, S_2.K, S_1.K)
-    end
-    if T === nothing
-        T = rand(Float32, S_1.K, 3)
-    end
-    for i=1:100
-        grad = gradient(correspondence_score, S_1, S_2, f_1, f_2, P, C, T)
-    end
     # correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
+    k_1 = S_1.K
+    k_2 = S_2.K
+end
+
+function compute_tau(S_1, S_2, P)
+    res = [P*S_2.V' - S_1.V'; S_2.V' - P'*S_1.V' ]
+    A = [S_1.ϕ_k; P' * S_1.ϕ_k]
+    A \ res
+end
+
+function apply_tau(S, T)
+    V = (S.V' + S.ϕ_k * T)'
+    V, S.F
 end
 
 function optimize_bijection(S_1, S_2, f_1, f_2, C, T; P) 
@@ -45,39 +50,27 @@ function optimize_bijection(S_1, S_2, f_1, f_2, C, T; P)
     # Perform sinkhorn iterations
 end
 
-function correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
-    # Assumes V_1 and V_2 are K-smooth and ϕ_1 and ϕ_2 are |V|×K
-    X_k_new = S_1.V + (S_1.ϕ_k * T)'
-    ϕ_k_new = S_1.ϕ_k * C'
-    n_k_new = vertex_normals(X_k_new, S_1.F) # compute normals from V_1
+function correspondence_score(S_1, S_2, f_1, f_2, P, C, T, a)
+    # P - 1-to-1 correspondence
+    # C - functional map correspondence
+    # T - coordinate deformation
+    # a - entropic regularizer
 
-    Y_k = (P * X_k_new')'
-    n_y_k = (P * n_k_new')'
+    X_k_new = S_1.V + (S_1.ϕ_k * T)'
+    ϕ_k_new = C * S_1.ϕ_k'
+    n_k_new = vertex_normals(X_k_new, S_1.F)
+
+    # Y_k = (P * X_k_new')'
+    # n_y_k = (P * n_k_new')'
 	
-    error = sum((S_2.V - Y_k).^2) + sum((S_2.ϕ_k - ϕ_k_new).^2) + sum((S_2.n_k - n_y_k).^2) 
+    error = sum((S_2.V - Y_k).^2) + sum((S_2.ϕ_k - ϕ_k_new).^2) + sum((S_2.n_k - n_y_k).^2) + a * entropy(P)
 end
 
-function correspondence_score(S_1, S_2, f_1, f_2, P, C, T, V::Symbol)
+function compute_mean_error(S_1, S_2, P, T)
     X_k_new = S_1.V + (S_1.ϕ_k * T)'
-    ϕ_k_new = S_1.ϕ_k * C'
-    n_k_new = vertex_normals(X_k_new, S_1.F) # compute normals from V_1
-
-    Y_k = (P * X_k_new')'
-    n_y_k = (P * n_k_new')'
-    # println("ϕ_k")
-    # display(S_1.ϕ_k)
-    # println("ϕ_k_new")
-    # display(ϕ_k_new)
-    # println("y ϕ_k")
-    # display(S_2.ϕ_k)
-	
-    e_1 = sum((S_2.V - Y_k).^2) 
-	e_2 = sum((S_2.ϕ_k - ϕ_k_new).^2)
-	e_3 = sum((S_2.n_k - n_y_k).^2)
-    feat_error = sum((C*S_1.ϕ_k'*f_1 - S_2.ϕ_k' * f_2).^2)
-    arap_error = 0
-    Dict{Symbol, Float32}(:vertex =>e_1, :spectral=>e_2, :normal=>e_3, :feature=>feat_error, :arap=>arap_error)
+    sum((X_k_new - P* S_2.V).^2) + sum((P' * X_k_new - S_2.V).^2)
 end
+
 
 function spectral_decomposition(V,K,ϕ)
     ϕ = ϕ[:,1:K]
@@ -85,6 +78,7 @@ function spectral_decomposition(V,K,ϕ)
     c = ϕ'*V'
     real.(ϕ * c)
 end
+
 
 function smooth_spectral_decomposition(V, K, ϕ)
     # c = ϕ' * (mesh.A .* V')
@@ -97,7 +91,7 @@ end
 function shell_coordinates(V, F, K, ϕ)
     X_k = smooth_spectral_decomposition(V, K, ϕ)
     ϕ_k = ϕ[:,1:K]
-    n_k = vertex_normals(X_k, F) # TODO: Incorrect
+    n_k = vertex_normals(X_k, F)
 
     X_k, ϕ_k, n_k
     Shell(X_k, ϕ_k, n_k, F,K)

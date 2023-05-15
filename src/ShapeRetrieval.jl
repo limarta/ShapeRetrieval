@@ -10,6 +10,7 @@ multicross(x,y) = reduce(hcat, cross.(eachcol(x), eachcol(y)))
 norm(x::Matrix; dims=1) = sqrt.(sum(x.^2, dims=dims))
 normalize_vectors(x::Matrix; dims=1) = x ./ vec(norm(x, dims=dims))'
 sigmoid(x) = 1 / (1+exp(-x))
+entropy(P) = -sum(P .* log2.(P))
 
 include("mesh.jl")
 include("geom.jl")

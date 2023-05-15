@@ -74,6 +74,7 @@ begin
 	bunny_1 = SR.normalize_area(bunny)
 	println("nv=$(bunny.nv) nf=$(bunny_1.nf) area=$(sum(bunny_1.vertex_area))")
 	bunny_2 = copy(bunny_1)
+	bunny_2 = SR.rotate_mesh_random(bunny_1)
 
 	k = 250
 	L_1, A_1, λ_1, ϕ_1, ∇_x_1, ∇_y_1 = SR.get_operators(bunny_1;k=k);
@@ -87,12 +88,15 @@ Spectral Mesh
 """
 
 # ╔═╡ a82bc112-ba4f-4be3-b79b-e2897773dd12
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	K = 10
 	X = SR.smooth_spectral_decomposition(bunny, K, ϕ_1)
 	spectral_bunny = SR.Mesh(X,bunny.F)
 	fig = SR.meshviz([bunny, spectral_bunny], shift_coordinates=true)
 end
+  ╠═╡ =#
 
 # ╔═╡ fcee8a90-c00b-43c6-9953-dd5b490e7024
 md"""
@@ -100,6 +104,8 @@ Ideal Correspondence
 """
 
 # ╔═╡ 66a65ad0-331a-4a13-b964-be7c4e2eb103
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	K = 12
 	S_1 = SR.shell_coordinates(bunny, K, ϕ_1)
@@ -111,32 +117,19 @@ let
 	display(e)
 	fig = SR.meshviz([S_1, S_2], shift_coordinates=true)
 end
+  ╠═╡ =#
 
 # ╔═╡ b7e69d13-b433-4052-834a-9797dc84e304
 let
 	K = 12
-	S_1 = SR.shell_coordinates(bunny, K, ϕ_1)
-	S_2 = SR.shell_coordinates(bunny, K, ϕ_2)
+	S_1 = SR.shell_coordinates(bunny_1, K, ϕ_1)
+	S_2 = SR.shell_coordinates(bunny_2, K, ϕ_2)
 	f_1 = SR.hks(λ_1, ϕ_1, A_1, 1)
 	f_2 = SR.hks(λ_2, ϕ_2, A_2, 1)
-	SR.optimize_deformation(S_1, S_2, f_1, f_2, I)
-	
-	function optimize_deformation(S_1, S_2, f_1, f_2, P; C=nothing, T=nothing)
-    # Optimizes C (functional correspondence) and T (extrinsic shift)
-	    if C === nothing
-	        C = rand(Float32, S_2.K, S_1.K)
-	    end
-	    if T === nothing
-	        T = rand(Float32, S_1.K, 3)
-	    end
-		alpha = 0.001
-		for i=1:300
-			grad = gradient(SR.correspondence_score, S_1, S_2, f_1, f_2, P, C, T)
-			println(SR.correspondence_score(S_1, S_2, f_1, f_2, P, C, T))
-			C -= alpha * grad[6]
-			T -= alpha * grad[7]
-		end
-	end
+	τ = SR.compute_tau(S_1, S_2, I)
+	V_new, F = SR.apply_tau(S_1, τ)
+	new_bunny = SR.Mesh(V_new, F)
+	fig = SR.meshviz([S_1, S_2, new_bunny])
 	# optimize_deformation(S_1, S_2, f_1, f_2, I)
 end
 
