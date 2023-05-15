@@ -67,9 +67,39 @@ end
 function vertex_normals(V,F, face_area)
     N = normals(V,F)
     ftov = FtoV(V,F, face_area)
-    (ftov * N')'
-end
+    oldN = (ftov * N')'
 
+    A = area_normals(V, F)
+    n = zero(V)
+
+    # println(size(A))
+    # println(A[:, 1])
+    # println(A[1])
+    for (i, f) in enumerate(eachcol(F))
+        for v in f
+            n[:, v] += A[:, i]
+        end
+    end
+
+    # lengths = normalize.(eachcol(n))'
+    # println(size(lengths))
+    # println(size(n))
+
+    normalize!.(eachcol(n))
+    normalize!.(eachcol(oldN))
+
+    println("START BRUH")
+
+    println(typeof(oldN))
+    println(size(n))
+    println(size(oldN))
+    println(sqrt(sum((n - oldN).^ 2)))
+    # println(oldN[:, 1])
+    # println(n[:, 1])
+
+    println("END BRUH")
+    return n
+end
 
 
 function face_grad(mesh::Mesh)

@@ -141,7 +141,16 @@ function cache_operators_for_folder(folder::String)
         println(filepath)
         mesh = load_obj(filepath)
         mesh = normalize_mesh(mesh)
+        rm(filepath)
 
         save_operators_to_cache(mesh, filepath)
     end
+end
+
+function load_and_cache(filepath::AbstractString)
+    mesh = load_obj(filepath)
+    mesh = normalize_mesh(mesh)
+    rm(filepath)
+    
+    save_operators_to_cache(mesh, filepath) 
 end
