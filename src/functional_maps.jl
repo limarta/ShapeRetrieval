@@ -6,12 +6,20 @@ struct Shell
     K::Int
 end
 
-function compute_fm(f,g, λ_1, λ_2, ϕ_1, ϕ_2)
+# P: Y->X; P^T:X->Y
+function compute_correspondence(S_1, S_2, f_1, f_2, P)
+    # Optimizes C (functional correspondence) and T (extrinsic shift)
+    # correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
+    # compute_fm()
+    T = compute_tau(S_1, S_2, P)
+end
+
+function compute_fm(f,g, S_1, S_2)
     # f, g are |V|×|C| 
     # Note: No regularization of entries
-    A = ϕ_1' * f
-    B = ϕ_2' * g
-    K = size(λ_1)[1]
+    A = S_1.ϕ_k' * f
+    B = S_2.ϕ_k' * g
+    K = size(S_1)[1]
     C = zeros(K,K)
     for k=1:K
         bb = B[k,:]
@@ -19,14 +27,6 @@ function compute_fm(f,g, λ_1, λ_2, ϕ_1, ϕ_2)
         C[k,:] = c
     end
     C
-end
-
-# P: Y->X; P^T:X->Y
-function optimize_deformation(S_1, S_2, f_1, f_2, P; C=nothing, T=nothing)
-    # Optimizes C (functional correspondence) and T (extrinsic shift)
-    # correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
-    k_1 = S_1.K
-    k_2 = S_2.K
 end
 
 function compute_tau(S_1, S_2, P)
@@ -40,14 +40,34 @@ function apply_tau(S, T)
     V, S.F
 end
 
-function optimize_bijection(S_1, S_2, f_1, f_2, C, T; P) 
-    # Optimizes P (1-1 correspondence)
-    nv1 = size(S_1.V)[2]
-    nv2 = size(S_2.V)[2]
-    if P === nothing
-        P = rand(Float32, nv2, nv1)
+function feat_correspondence(S_1, S_2, P) 
+    d = dist_mat(S_1.V, S_2.V)
+    sinkhorn(d, a)
+end
+
+function sinkhorn(d, sigma=1.0, N=10)
+    # normalize distances by average
+    # ϵ = 2*sigma^2 
+    d = d / mean(d)
+    log_p = -d ./ (2*sigma^2) # Initialize
+    for t=1:N
+        log_p = log_p .- LogExpFunctions.logsumexp(log_p, dims=1)
+        log_p = log_p .- LogExpFunctions.logsumexp(log_p, dims=2)
     end
-    # Perform sinkhorn iterations
+    log_p = log_p .- LogExpFunctions.logsumexp(log_p, dims=1)
+    p = exp.(log_p)
+    log_p = log_p .- LogExpFunctions.logsumexp(log_p, dims=2)
+    p_adj = exp.(log_p)'
+    p, p_adj
+end
+
+function dist_mat(x, y)
+    # X and Y are 3× |V| matrices
+    # d[x,y] for x and y
+    d = -2 *x'*y
+    v_x = sum(x .^2; dims=1)
+    v_y = sum(y .^2; dims=1)
+    return d .+ v_x' .+ v_y
 end
 
 function correspondence_score(S_1, S_2, f_1, f_2, P, C, T, a)

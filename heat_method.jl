@@ -69,7 +69,7 @@ md"""
 begin
 	@time bunny = SR.load_obj("./meshes/dragon.obj")
 	@time bunny = SR.normalize_area(bunny)
-	@time L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
+	@time L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny; k=32);
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
 end
 
@@ -98,6 +98,8 @@ md"""
 """
 
 # ╔═╡ d803fa5e-b0a3-4937-b796-93412067f2cb
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	frames = SR.tangent_basis(bunny.V, bunny.F, bunny.vertex_normals)
 	fig = SR.meshviz(bunny, color=:cyan)
@@ -106,6 +108,7 @@ let
 	SR.viz_field!(bunny, frames[:,:,2], :vertex, color=:lime, lengthscale=0.01, linewidth=0.005)
 	fig
 end
+  ╠═╡ =#
 
 # ╔═╡ 6f6fc384-20a3-4eab-9990-5197611a43c5
 md"""
@@ -113,6 +116,8 @@ md"""
 """
 
 # ╔═╡ 7c94da05-1768-49ba-9d90-486b3ec19bcf
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	heat_init = bunny.V[1,:]
 	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 3)
@@ -125,6 +130,7 @@ let
 	SR.viz_field!(bunny, heat_field, :vertex,color=:orange, lengthscale=0.01, arrowsize=.005, linewidth=0.001)
 	fig
 end
+  ╠═╡ =#
 
 # ╔═╡ 258801e7-e23d-4d48-a89f-3fcfcd6e07a2
 md"""
@@ -132,11 +138,14 @@ Heat Signature Kernel
 """
 
 # ╔═╡ fb9ed22e-f529-45bb-b800-e8d69c35c486
+# ╠═╡ disabled = true
+#=╠═╡
 let
-	heat = SR.hks(λ, ϕ, A, 16)
+	@time heat = SR.hks(λ, ϕ, A, 16)
 	println(size(heat))
 	fig = SR.meshviz(bunny, color=heat[:,16])
 end
+  ╠═╡ =#
 
 # ╔═╡ ca9cf948-a181-41ed-97c3-7806b2526865
 md"""
@@ -145,16 +154,35 @@ Functional Correspondence
 
 # ╔═╡ 98f6c689-90f7-4a92-90a7-d10b5be1c277
 let
+	function compute_correspondence(f,g, λ_1, λ_2, ϕ_1, ϕ_2)
+	    # f, g are |V|×|C| 
+	    # Note: No regularization of entries
+	    A = ϕ_1' * f
+	    B = ϕ_2' * g
+	    K = size(λ_1)[1]
+		K_2 = 
+	    C = zeros(K,K)
+	    for k=1:K
+	        bb = B[k,:]
+			display(A')
+			display(bb)
+	        c = A' \ bb
+			println(c)
+	        C[k,:] = c
+	    end
+	    C
+	end
 	function v(C)
 		C = abs.(C)
-		C[C .< 0.001] .= NaN
+		C[C .< 0.1] .= NaN
 		# fig = Figure(resolution=(500, 500))
 		# ax  = Axis(fig[1,1])
 		# hm = heatmap(i, y, C)
 		heatmap(C)
 	end
-	heat = SR.hks(λ, ϕ, A, 16)
-	C = SR.compute_correspondence(heat, heat, λ, λ, ϕ, ϕ)
+	heat = SR.hks(λ, ϕ, A, 20)
+	feat = hcat(heat, bunny.V')
+	C = compute_correspondence(feat, feat, λ, λ, ϕ, ϕ)
 	v(C)
 end
 

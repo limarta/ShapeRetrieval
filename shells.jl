@@ -13,6 +13,9 @@ using Arpack
 # ╔═╡ 2a691b2e-8513-4ecc-b6fa-392bcdf86c96
 using LinearAlgebra
 
+# ╔═╡ 936b68bb-efc4-4a91-b576-4ca727994b05
+using LogExpFunctions
+
 # ╔═╡ d1848368-4802-441f-af2e-dcfa2e3ce030
 using SparseArrays
 
@@ -133,6 +136,24 @@ let
 	# optimize_deformation(S_1, S_2, f_1, f_2, I)
 end
 
+# ╔═╡ 37dace15-0deb-46f7-983f-df00649eada3
+md"""
+Sinkhorn Step
+"""
+
+# ╔═╡ 48851664-318e-4f85-9484-6c107fc707bc
+let
+	A = rand(Float32, 4, 2000)
+	B = rand(Float32, 4, 2000)
+	@time d = SR.dist_mat(A,B)
+	@time p, p_adj =SR.sinkhorn(d, 0.4, 10)
+	display(p)
+	display(p_adj)
+end
+
+# ╔═╡ 6b862a5c-84fe-4074-aebf-c3deec3047a6
+LogExpFunctions.logsumexp
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -142,6 +163,7 @@ DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
@@ -154,6 +176,7 @@ BenchmarkTools = "~1.3.2"
 DataStructures = "~0.18.13"
 Flux = "~0.13.16"
 JLD2 = "~0.4.31"
+LogExpFunctions = "~0.3.23"
 NNlib = "~0.8.20"
 Rotations = "~1.4.0"
 WGLMakie = "~0.8.8"
@@ -166,7 +189,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0"
 manifest_format = "2.0"
-project_hash = "3287c0d26ce074ead6847daff9fbcc81280af521"
+project_hash = "a67f702a84c99c75929e073f565d4bcc91e1d7c1"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1968,6 +1991,7 @@ version = "3.5.0+0"
 # ╠═a684b906-a9c0-4d4f-b21e-5fdbd25d4e4d
 # ╠═d3dc062e-79e5-4253-9715-ac3fae52ee3f
 # ╠═2a691b2e-8513-4ecc-b6fa-392bcdf86c96
+# ╠═936b68bb-efc4-4a91-b576-4ca727994b05
 # ╠═d1848368-4802-441f-af2e-dcfa2e3ce030
 # ╠═f462f1e4-6bfe-42e6-a552-2aedf7d20dcd
 # ╠═d9fabcdd-2337-4ae5-b610-ba022d076064
@@ -1987,5 +2011,8 @@ version = "3.5.0+0"
 # ╟─fcee8a90-c00b-43c6-9953-dd5b490e7024
 # ╠═66a65ad0-331a-4a13-b964-be7c4e2eb103
 # ╠═b7e69d13-b433-4052-834a-9797dc84e304
+# ╠═37dace15-0deb-46f7-983f-df00649eada3
+# ╠═48851664-318e-4f85-9484-6c107fc707bc
+# ╠═6b862a5c-84fe-4074-aebf-c3deec3047a6
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
