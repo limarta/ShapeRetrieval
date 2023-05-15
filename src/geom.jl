@@ -110,6 +110,12 @@ function vertex_grad(V,F,N)
         end
     end
 
+    count = sum(length.(one_ring_neighbors))
+    I = Vector{Int}(undef,count)
+    J = Vector{Int}(undef,count)
+    V_x = Vector{Float64}(undef, count)
+    V_y = Vector{Float64}(undef, count)
+    j = 1
     for i=1:nv # Naive
         # P(∇f) = Df -> Solve via least squares -> ∇ = (P'P)^{-1}P'D
         neighbors = one_ring_neighbors[i]
@@ -119,17 +125,28 @@ function vertex_grad(V,F,N)
         center = V[:,i]
         edges = edges .- center
         proj_edges = embed_in_plane(frames[:,i,:], edges)'
-        D = zeros(size(neighbors)[1], nv)
-        D[:,i] .= -1
-        ind = CartesianIndex.(1:size(neighbors)[1], neighbors)
-        D[ind] .= 1
-        grad_i = proj_edges \ D
-        ∇[:,:,i] = grad_i
+        D_ = zeros(length(neighbors), length(neighbors)+1)
+        D_[:,1] .= -1
+        ind_ = CartesianIndex.(1:length(neighbors), 2:length(neighbors)+1)
+        D_[ind_] .= 1
+        grads = proj_edges \ D_
+        # println("grads size: ", size(grads), " neighbors ", length(neighbors))
+        len = length(neighbors)+1
+        I[j:j+len-1] = fill(i, len)
+        J[j] = i
+        J[j+1:j+len-1] =  neighbors
+        V_x[j:j+len-1] = grads[1,:]
+        V_y[j:j+len-1] = grads[2,:]
+        j = j+len
     end
-    # A = mesh.vertex_area
-    sparse(∇[1,:,:]'),  sparse(∇[2,:,:]')
+    I = convert.(Int, I)
+    J = convert.(Int, J)
+    V_x = convert.(Float32, V_x)
+    V_y = convert.(Float32, V_y)
+    ∇_x = sparse(I, J, V_x)
+    ∇_y = sparse(I,J, V_y)
+    ∇_x, ∇_y
 end
-
 function embed_in_plane(frame, edges)
     # Project the edges onto the tangent plane defined by frame
     e_1 = frame[:,1]

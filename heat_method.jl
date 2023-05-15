@@ -67,9 +67,9 @@ md"""
 
 # ╔═╡ 444b0681-2847-4096-b240-92fc1edb3d52
 begin
-	bunny = SR.load_obj("./meshes/gourd.obj")
-	bunny = SR.normalize_area(bunny)
-	L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
+	@time bunny = SR.load_obj("./meshes/dragon.obj")
+	@time bunny = SR.normalize_area(bunny)
+	@time L, A, λ, ϕ, ∇_x, ∇_y = SR.get_operators(bunny);
 	println("nv=$(bunny.nv) nf=$(bunny.nf) area=$(sum(bunny.vertex_area))")
 end
 
@@ -78,41 +78,10 @@ md"""
 ##### Heat Diffusion by Iteration
 """
 
-# ╔═╡ c56694de-df2a-4b0b-b4cc-5fe696b79b5a
-# ╠═╡ disabled = true
-#=╠═╡
-let
-	heat_signal = zeros(bunny.nv)
-	heat_signal[[1, 2]] .= 1.0
-	@time bunny_heat = SR.heat_integrator(bunny, heat_signal, dt=0.001, steps=100)
-	fig = SR.meshviz(bunny, color=bunny_heat)
-	fig
-end
-  ╠═╡ =#
-
 # ╔═╡ d6faf275-8cb4-4140-9d27-81e138f504a5
 md"""
 ##### Heat Iteration with Spectrum
 """
-
-# ╔═╡ a9d9609b-d8dd-4d0b-b03b-c371c7afa94d
-# ╠═╡ disabled = true
-#=╠═╡
-let
-	function myshowall(io, x, limit = false) 
-	  println(io, summary(x), ":")
-	  Base.print_matrix(IOContext(io, :limit => limit), x)
-	end
-	heat_init = ones(bunny.nv)
-	heat_init[1] = 10
-	println(λ)
-	# println(ϕ[1,:])
-	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 10)
-	myshowall(stdout, heat, false)
-	fig = SR.meshviz(bunny, color=heat)
-	fig
-end
-  ╠═╡ =#
 
 # ╔═╡ f4f66184-bd23-4477-859f-9c1629b5abab
 md"""
@@ -145,7 +114,7 @@ md"""
 
 # ╔═╡ 7c94da05-1768-49ba-9d90-486b3ec19bcf
 let
-	heat_init = bunny.V[3,:]
+	heat_init = bunny.V[1,:]
 	@time heat= SR.heat_diffusion(λ,ϕ,bunny.vertex_area, heat_init, 3)
 	heat_grad_x = ∇_x * heat
 	heat_grad_y = ∇_y * heat
@@ -178,7 +147,7 @@ Functional Correspondence
 let
 	function v(C)
 		C = abs.(C)
-		C[C .< 0.2] .= NaN
+		C[C .< 0.001] .= NaN
 		# fig = Figure(resolution=(500, 500))
 		# ax  = Axis(fig[1,1])
 		# hm = heatmap(i, y, C)
@@ -2026,9 +1995,7 @@ version = "3.5.0+0"
 # ╟─d262539a-b7b5-43a5-93e0-584badda7b9f
 # ╠═444b0681-2847-4096-b240-92fc1edb3d52
 # ╟─e3f1500b-017d-4d93-ade5-ad025626cf1c
-# ╟─c56694de-df2a-4b0b-b4cc-5fe696b79b5a
 # ╟─d6faf275-8cb4-4140-9d27-81e138f504a5
-# ╟─a9d9609b-d8dd-4d0b-b03b-c371c7afa94d
 # ╟─f4f66184-bd23-4477-859f-9c1629b5abab
 # ╠═a2005d9e-03c5-4950-bd57-e1c2e7beafef
 # ╟─46ad806d-ce7c-4f25-82d4-b26254365977
