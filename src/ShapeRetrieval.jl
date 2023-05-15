@@ -17,8 +17,8 @@ include("heat.jl")
 include("diffusion/diffusion.jl")
 include("utils.jl")
 include("dataloader/dataloader.jl")
-include("maps/functional_maps.jl")
-include("sampler/sampler.jl")
+include("functional_maps.jl")
+include("sampler.jl")
 include("viz.jl")
 
 end # module ShapeRetrieval
