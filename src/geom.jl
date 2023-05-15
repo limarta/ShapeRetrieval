@@ -99,10 +99,20 @@ function vertex_grad(V,F,N)
     nv = size(V)[2]
     frames = tangent_basis(V,F,N)
     ∇ = zeros(2,nv,nv)
+    one_ring_neighbors = Vector{Set}()
+    for v in 1:nv
+        push!(one_ring_neighbors, Set{Int}())
+    end
+    
+    for f in eachcol(F)
+        for v in f
+            union!(one_ring_neighbors[v], f)
+        end
+    end
+
     for i=1:nv # Naive
         # P(∇f) = Df -> Solve via least squares -> ∇ = (P'P)^{-1}P'D
-        neighbors = [f for f in eachcol(F) if i∈f] # HOT
-        neighbors = Set(vcat(neighbors...))
+        neighbors = one_ring_neighbors[i]
         delete!(neighbors, i)
         neighbors = collect(neighbors)
         edges = V[:,neighbors]
