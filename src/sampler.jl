@@ -69,3 +69,8 @@ function rotate_mesh_random(mesh::Mesh)
     rotation = rand(QuatRotation)
     Mesh(rotation * mesh.V, mesh.F)
 end
+
+function rotate_mesh(mesh::Mesh; angle=0, axis=[0.0, 1.0, 0])
+    rotation = AngleAxis(angle, axis...)
+    Mesh(rotation * mesh.V, mesh.F)
+end

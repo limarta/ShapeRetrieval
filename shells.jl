@@ -73,16 +73,19 @@ md"""
 
 # ╔═╡ f5dbd657-f4ce-4b3e-92f9-9e76f3a25e95
 begin
-	bunny = SR.load_obj("./meshes/shrec/1.obj")
+	bunny = SR.load_obj("./meshes/apple.obj")
 	bunny_1 = SR.normalize_area(bunny)
-	println("nv=$(bunny.nv) nf=$(bunny_1.nf) area=$(sum(bunny_1.vertex_area))")
-	bunny_2 = copy(bunny_1)
-	bunny_2 = SR.rotate_mesh_random(bunny_1)
+	
+	bunny_2 = SR.load_obj("./meshes/apple.obj")
+	bunny_2 = SR.normalize_area(bunny_2)
+	bunny_2 = SR.rotate_mesh(bunny_2)
+	println("nv=$(bunny_1.nv) nf=$(bunny_1.nf) area=$(sum(bunny_1.vertex_area))")
+	println("nv=$(bunny_2.nv) nf=$(bunny_2.nf) area=$(sum(bunny_2.vertex_area))")
 
 	k = 250
 	L_1, A_1, λ_1, ϕ_1, ∇_x_1, ∇_y_1 = SR.get_operators(bunny_1;k=k);
 	L_2, A_2, λ_2, ϕ_2, ∇_x_2, ∇_y_2 = SR.get_operators(bunny_2;k=k);
-	fig = SR.meshviz([bunny, bunny_2], shift_coordinates=true)
+	fig = SR.meshviz([bunny, bunny_2])
 end
 
 # ╔═╡ 013449b8-8c0f-48d1-adb2-7f839cd01fd8
@@ -91,15 +94,12 @@ Spectral Mesh
 """
 
 # ╔═╡ a82bc112-ba4f-4be3-b79b-e2897773dd12
-# ╠═╡ disabled = true
-#=╠═╡
 let
-	K = 10
-	X = SR.smooth_spectral_decomposition(bunny, K, ϕ_1)
-	spectral_bunny = SR.Mesh(X,bunny.F)
-	fig = SR.meshviz([bunny, spectral_bunny], shift_coordinates=true)
+	K = 20
+	X = SR.shell_coordinates(bunny_1, K, ϕ_1)
+	Y = SR.shell_coordinates(bunny_2, K, ϕ_2)
+	fig = SR.meshviz([bunny_1, X, bunny_2, Y], shift_coordinates=true)
 end
-  ╠═╡ =#
 
 # ╔═╡ fcee8a90-c00b-43c6-9953-dd5b490e7024
 md"""
@@ -116,42 +116,50 @@ let
 	f_1 = SR.hks(λ_1, ϕ_1, A_1, 1)
 	f_2 = SR.hks(λ_2, ϕ_2, A_2, 1)
 	C = diagm(sign.(ϕ_1[1,1:K] .* sign.(ϕ_2[1,1:K]))) # Hackish but for demonstration
-	e = SR.correspondence_score(S_1, S_2, f_1, f_2, I, C, zeros(K,3))
-	display(e)
+	# e = SR.correspondence_score(S_1, S_2, f_1, f_2, I, C, zeros(K,3))
+	# display(e)
 	fig = SR.meshviz([S_1, S_2], shift_coordinates=true)
 end
   ╠═╡ =#
 
 # ╔═╡ b7e69d13-b433-4052-834a-9797dc84e304
 let
-	K = 30
+	# NOTE: This cell only runs if both meshes have the same # of vertices
+	K=50
 	S_1 = SR.shell_coordinates(bunny_1, K, ϕ_1)
-	S_2 = SR.shell_coordinates(bunny_2, K, ϕ_2)
+	S_2 = SR.shell_coordinates(bunny_2, K+50, ϕ_2)
 	f_1 = SR.hks(λ_1, ϕ_1, A_1, 1)
 	f_2 = SR.hks(λ_2, ϕ_2, A_2, 1)
+	
 	τ = SR.compute_tau(S_1, S_2, I)
 	S_new = SR.apply_tau(S_1, τ)
-	fig = SR.meshviz([S_1, S_2, S_new])
+	fig = SR.meshviz([S_1, S_2, S_new], shift_coordinates=true)
 end
 
-# ╔═╡ 37dace15-0deb-46f7-983f-df00649eada3
+# ╔═╡ 4be0504f-4b37-485f-a771-333aaa5024f6
 md"""
-Sinkhorn Step
+One Iteration of Smooth Shells
 """
 
-# ╔═╡ 48851664-318e-4f85-9484-6c107fc707bc
+# ╔═╡ be43bfd7-0eb8-432f-9781-8ada3b7c6ea7
 let
-	K = 14
+	K = 3
 	S_1 = SR.shell_coordinates(bunny_1, K, ϕ_1)
 	S_2 = SR.shell_coordinates(bunny_2, K, ϕ_2)
-	τ = SR.compute_tau(S_1, S_2, I)
+	# τ = SR.compute_tau(S_1, S_2, I)
+	# S_new = SR.apply_tau(S_1, τ)
+	@time P, P_adj = SR.feat_correspondence(S_1, S_2, 0.1, 10)
+
+	τ = SR.compute_tau(S_1, S_2, P, P_adj)
 	S_new = SR.apply_tau(S_1, τ)
-	@time P, P_adj = SR.feat_correspondence(S_new, S_2, 0.01, 10)
-	display(P)
+	SR.meshviz([S_1, S_2, S_new])
+	
 end
 
-# ╔═╡ 6b862a5c-84fe-4074-aebf-c3deec3047a6
-LogExpFunctions.logsumexp
+# ╔═╡ ea6875aa-fbbb-4ed9-a770-8708b78ca317
+md"""
+Compute FM Deformation
+"""
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2010,8 +2018,8 @@ version = "3.5.0+0"
 # ╟─fcee8a90-c00b-43c6-9953-dd5b490e7024
 # ╠═66a65ad0-331a-4a13-b964-be7c4e2eb103
 # ╠═b7e69d13-b433-4052-834a-9797dc84e304
-# ╠═37dace15-0deb-46f7-983f-df00649eada3
-# ╠═48851664-318e-4f85-9484-6c107fc707bc
-# ╠═6b862a5c-84fe-4074-aebf-c3deec3047a6
+# ╠═4be0504f-4b37-485f-a771-333aaa5024f6
+# ╠═be43bfd7-0eb8-432f-9781-8ada3b7c6ea7
+# ╟─ea6875aa-fbbb-4ed9-a770-8708b78ca317
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

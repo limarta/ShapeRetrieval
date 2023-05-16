@@ -18,37 +18,36 @@ function apply_tau(S,T)
 end
 
 # P: Y->X; P^T:X->Y
-function compute_correspondence(S_1, S_2, f_1, f_2, P)
+function compute_correspondence(S_1, S_2, f_1, f_2, P, P_adj)
     # Optimizes C (functional correspondence) and T (extrinsic shift)
-    # correspondence_score(S_1, S_2, f_1, f_2, P, C, T)
-    # compute_fm()
-    T = compute_tau(S_1, S_2, P)
+    C = compute_fm(S_1, S_2, f_1, f_2, P, P_adj)
+    T = compute_tau(S_1, S_2, P, P_adj)
 end
 
-function compute_fm(f,g, S_1, S_2)
+function compute_fm(S_1, S_2, P, P_adj)
     # f, g are |V|×|C| 
     # Note: No regularization of entries
-    A = S_1.ϕ_k' * f
-    B = S_2.ϕ_k' * g
-    K = size(S_1)[1]
-    C = zeros(K,K)
-    for k=1:K
-        bb = B[k,:]
-        c = A' \ bb
-        C[k,:] = c
-    end
-    C
+    # A = S_1.ϕ_k' * f
+    # B = S_2.ϕ_k' * g
+    # K = size(S_1)[1]
+    # C = zeros(K,K)
+    # for k=1:K
+    #     bb = B[k,:]
+    #     c = A' \ bb
+    #     C[k,:] = c
+    # end
+    # C
 end
 
-function compute_tau(S_1, S_2, P)
-    res = [P*S_2.V' - S_1.V'; S_2.V' - P'*S_1.V' ]
-    A = [S_1.ϕ_k; P' * S_1.ϕ_k]
+function compute_tau(S_1, S_2, P, P_adj)
+    res = [P*S_2.V' - S_1.V'; S_2.V' - P_adj*S_1.V' ]
+    A = [S_1.ϕ_k; P_adj * S_1.ϕ_k]
     A \ res
 end
 
 function feat_correspondence(S_1, S_2, sigma=0.3, N=10)
-    X = [S_1.V' S_1.n_k']
-    Y = [S_2.V' S_2.n_k']
+    X = [S_1.V' S_1.ϕ_k  S_1.n_k']
+    Y = [S_2.V' S_2.ϕ_k  S_2.n_k']
     d = dist_mat(X, Y)
     sinkhorn(d, sigma, N)
 end
@@ -59,23 +58,23 @@ function sinkhorn(d, sigma, N)
     d = d / mean(d)
     log_p = -d ./ (2*sigma^2) # Initialize
     for t=1:N
-        log_p = log_p .- LogExpFunctions.logsumexp(log_p, dims=1)
         log_p = log_p .- LogExpFunctions.logsumexp(log_p, dims=2)
+        log_p = log_p .- LogExpFunctions.logsumexp(log_p, dims=1)
     end
-    log_p = log_p .- LogExpFunctions.logsumexp(log_p, dims=1)
-    p = exp.(log_p)
     log_p = log_p .- LogExpFunctions.logsumexp(log_p, dims=2)
+    p = exp.(log_p)
+    log_p = log_p .- LogExpFunctions.logsumexp(log_p, dims=1)
     p_adj = exp.(log_p)'
     p, p_adj
 end
 
 function dist_mat(x, y)
-    # X and Y are 3× |V| matrices
+    # X and Y are |V|×3 matrices
     # d[x,y] for x and y
-    d = -2 *x'*y
-    v_x = sum(x .^2; dims=1)
-    v_y = sum(y .^2; dims=1)
-    return d .+ v_x' .+ v_y
+    d = -2*x*y'
+    v_x = sum(x .^2; dims=2)
+    v_y = sum(y .^2; dims=2)
+    return d .+ v_x .+ v_y'
 end
 dist_mat(x::Shell, y::Shell) = dist_mat(x.V, y.V)
 

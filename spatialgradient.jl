@@ -78,119 +78,15 @@ md"""
 Learned Time Diffusion Layer - Implicit Mode
 """
 
-# ╔═╡ 8d10f5c8-48e2-48c0-b754-b5a985c7300f
-# ╠═╡ disabled = true
-#=╠═╡
-let
-	function diffusion_loss(model, x, L, A, y) 
-	    norm(model(x, L, A) - y)
-	end
-	println(λ)
-	heat_init = ones(bunny.nv,3)
-	heat_init[1,1] = 100.0 #  can be|V|×|C| input
-	heat_init[200,2] = 1.0
-	heat_init[140,3] = 1.0; heat_init[300,3] = 1.0
-
-	m = SR.LearnedTimeDiffusionBlock(3, [1, 0.0, 0.0])
-	println(m)
-	m(heat_init, L, A)
-
-	# opt_state = Flux.setup(Adam(), m)
-	# y_true = m(heat_init, L, A)
-	# println("t_true: ", m.diffusion_time)
-	# m = SR.LearnedTimeDiffusionBlock(3)
-	# println("t_start: ", m.diffusion_time)
-	# println("start cost ", diffusion_loss(m, heat_init, L, A, y_true))
-	# @time for i=1:40
-	# 	if i%10==0
-	# 		println(i)
-	# 	end
-	#     grad = gradient(diffusion_loss, m, heat_init, L, A, y_true)
-	#     Flux.update!(opt_state, m, grad[1])
-	# end
-	# println("final cost : ",diffusion_loss(m,heat_init, L, A, y_true))
-	# println("t_final: ", m.diffusion_time)
-	# predicted_heat = m(heat_init, L, A)
-	# heat_viz = [y_true predicted_heat]
-	# SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))
-end
-  ╠═╡ =#
-
 # ╔═╡ 572a9dbe-70c6-4142-b43f-cc26cd147b9f
 md"""
 Learned Time Diffusion Layer - Spectral mode
 """
 
-# ╔═╡ 0ea4d2d2-c3d8-4f38-a60c-298924a71840
-# ╠═╡ disabled = true
-#=╠═╡
-let
-	function diffusion_loss(model, x, ϕ, λ, A, y) 
-	    norm(model(x,ϕ,λ,A) - y)
-	end
-	heat_init = zeros(Float32, bunny.nv,3)
-	heat_init[1,1] = 10.0 #  can be|V|×|C| input
-	heat_init[200,2] = 1.0
-	heat_init[140,3] = 10.0; heat_init[300,3] = 1.0
-	
-	m = SR.LearnedTimeDiffusionBlock(3)
-	y_true = m(heat_init, λ,ϕ, A)
-	println("t_true: ", m.diffusion_time)
-	m = SR.LearnedTimeDiffusionBlock(3)
-	println("t_start: ", m.diffusion_time)
-	println("start cost ", diffusion_loss(m, heat_init, λ, ϕ, A, y_true))
-	
-	opt_state = Flux.setup(Adam(), m)
-	@time for i=1:1000
-	    grad = gradient(diffusion_loss, m, heat_init, λ, ϕ, A, y_true)
-		# print(grad[1])
-	    Flux.update!(opt_state, m, grad[1])
-	end
-	println("final cost : ",diffusion_loss(m,heat_init, λ, ϕ, A, y_true))
-	println("t_final: ", m.diffusion_time)
-	predicted_heat = m(heat_init, λ, ϕ, A)
-	heat_viz = [y_true predicted_heat]
-	SR.viz_grid(bunny.V, bunny.F, heat_viz; dims=(2,3))
-end
-  ╠═╡ =#
-
 # ╔═╡ a5486cfa-1c7d-451b-b142-89728f79eb94
 md"""
 Spatial Gradient Layer
 """
-
-# ╔═╡ d1eb38e1-122e-47d5-8fbd-cc56d76144ca
-# ╠═╡ disabled = true
-#=╠═╡
-let
-	C_in = 3
-	function spatial_loss(m, grad_x, grad_y, y)
-		y_pred = m(grad_x, grad_y)
-		norm(y - y_pred)
-	end
-	sgb = SR.SpatialGradientBlock(false, C_in)
-	fake_x = rand(C_in,100)
-	fake_y = rand(C_in,100)
-	y_true = sgb(fake_x, fake_y)
-
-	println("A_true: ", sgb.A)
-
-	
-	opt_state = Flux.setup(Adam(), sgb)
-	sgb = SR.SpatialGradientBlock(true, C_in)
-	println("A_start: ", sgb.A)
-	println("init cost: ", spatial_loss(sgb, fake_x, fake_y, y_true))
-
-	@time for i=1:3000
-	    grad = gradient(spatial_loss, sgb, fake_x, fake_y, y_true)
-	    Flux.update!(opt_state, sgb, grad[1])
-	end
-	println("final cost : ",spatial_loss(sgb, fake_x, fake_y, y_true))
-	println("t_final: ", sgb.A)
-	# predicted_heat = m(heat_init, L, A)
-	# heat_viz = [y_true predicted_heat]
-end
-  ╠═╡ =#
 
 # ╔═╡ bba65f1c-8ad5-438d-b8ea-ddd460d178d5
 md"""
@@ -202,117 +98,15 @@ md"""
 MLP
 """
 
-# ╔═╡ 2950e891-3f70-4fcb-9de0-5de6716e1ff3
-# ╠═╡ disabled = true
-#=╠═╡
-let
-	mlp = SR.MLP([2,2,3])
-	x_fake = rand(Float32, 2, 100)
-	@code_warntype mlp(x_fake)
-end
-  ╠═╡ =#
-
 # ╔═╡ 163c2624-cdcb-4627-8623-3163bd64fb27
 md"""
 Diffusion Block with No Spatial Gradients
 """
 
-# ╔═╡ 3d0d3ae4-caf1-4a93-9a1d-dbae5cc35a37
-# ╠═╡ disabled = true
-#=╠═╡
-let
-	dnb = SR.DiffusionNetBlock(3,[2,], with_gradient_features=true)
-	println()
-	println()
-	@code_warntype dnb(rand(Float32, 2503,3), λ, ϕ, A,∇_x, ∇_y)
-end
-  ╠═╡ =#
-
-# ╔═╡ d0315bf8-fa34-4339-b25f-14f30f5dad58
-# ╠═╡ disabled = true
-#=╠═╡
-let
-
-	xyz = convert.(Float32,bunny.V)'
-	dnb = SR.DiffusionNetBlock(3,[2,], with_gradient_features=true)
-	y = copy(bunny.V)
-	y .-= minimum.(eachrow(y))
-	y ./= maximum.(eachrow(y))
-	y = convert.(Float32, (y.-0.5))
-	
-	function diffusion_loss(model, x, λ, ϕ, A,∇_x, ∇_y, y)
-		y_pred = model(x, λ, ϕ, A, ∇_x, ∇_y)
-		norm(y - y_pred)
-	end
-	dnb = SR.DiffusionNetBlock(3,[20,20], with_gradient_features=false)
-	opt_state = Flux.setup(Adam(), dnb)
-	println("init cost: ", diffusion_loss(dnb, xyz, λ,ϕ, A,∇_x, ∇_y, y))
-	println(dnb)
-	@time for i=1:1
-	    grad = gradient(diffusion_loss, dnb, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
-		if i % 1000 == 0
-			println(diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
-		end
-	    Flux.update!(opt_state, dnb, grad[1])
-	end
-	
-	println("final cost : ",diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
-	
-	y_pred = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
-	# fig = SR.meshviz(bunny, color=y_pred[3,:], shift_coordinates=true, resolution=(1500,1500))
-	y_0, y_1, y_2 = SR.diffusion_explain(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y)
-	println(dnb)
-	
-	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_0'; y_2]', shift_coordinates=false, dims=(3,3))
-end
-
-  ╠═╡ =#
-
 # ╔═╡ 0d6e4551-57c3-4c9e-8edf-46623fca6e6a
 md"""
 Diffusion Block with Spatial Gradients
 """
-
-# ╔═╡ 24910685-f7f8-4c3d-9b2e-30979680571d
-# ╠═╡ disabled = true
-#=╠═╡
-let
-
-	xyz = convert.(Float32,bunny.V)'
-	y = copy(bunny.V)
-	y .-= minimum.(eachrow(y))
-	y ./= maximum.(eachrow(y))
-	y = convert.(Float32, (y.-0.5))
-	
-	function diffusion_loss(model, x, λ, ϕ, A,∇_x, ∇_y, y)
-		y_pred = model(x, λ, ϕ, A, ∇_x, ∇_y)
-		norm(y - y_pred)
-	end
-	dnb = SR.DiffusionNetBlock(3,[3], with_gradient_features=true)
-	opt_state = Flux.setup(Adam(), dnb)
-	println(dnb)
-	println("init cost: ", diffusion_loss(dnb, xyz, λ,ϕ, A,∇_x, ∇_y, y))
-	# @code_warntype dnb(xyz, λ,ϕ, A,∇_x, ∇_y)
-	@time for i=1:10000
-	    grad = gradient(diffusion_loss, dnb, xyz, λ, ϕ, A, ∇_x, ∇_y, y)
-		if i % 100 == 0
-			println(diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
-		end
-	    Flux.update!(opt_state, dnb, grad[1])
-	end
-	
-	println("final cost : ",diffusion_loss(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y,y))
-	
-	y_pred = dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
-	# @code_warntype dnb(xyz, λ, ϕ, A, ∇_x, ∇_y)
-	# fig = SR.meshviz(bunny, color=y_pred[3,:], shift_coordinates=true, resolution=(1500,1500))
-	y_0, y_1, y_2 = SR.diffusion_explain(dnb, xyz, λ, ϕ, A, ∇_x, ∇_y)
-	println(dnb)
-	
-	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_0'; y_2]', shift_coordinates=false, dims=(3,3))
-end
-
-  ╠═╡ =#
 
 # ╔═╡ 5aa34727-c41a-4533-8e9d-a186fba5a20f
 md"""
@@ -355,26 +149,6 @@ let
 	println(net)
 	fig = SR.viz_grid(bunny.V, bunny.F, [y; y_pred]', shift_coordinates=false, dims=(2,3))
 end
-
-# ╔═╡ 3db353d1-e7e8-4c68-b5d2-97dae5528f51
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	decomposed_V = SR.spectral_decomposition(bunny, ϕ)
-	decomposed_bunny = SR.Mesh(decomposed_V', bunny.F)
-end
-  ╠═╡ =#
-
-# ╔═╡ a011d19d-47d2-4dd1-bec8-3f15f1666bf8
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	# println(length(∇_x))
-	# println(length([x for x in ∇_x if x != 0]))
-	# println(length([x for x in ∇_x if abs(x) >0]))
-	println(∇_x)
-end
-  ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
